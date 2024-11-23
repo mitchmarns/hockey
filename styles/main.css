@@ -60,3 +60,22 @@ ul {
 ul li {
   margin: 5px 0;
 }
+
+.player-stats {
+  margin: 15px;
+  padding: 10px;
+  border: 1px solid #ccc;
+}
+
+#stats-container {
+  display: flex;
+  flex-direction: column;
+}
+
+form {
+  margin-top: 20px;
+}
+
+label, input {
+  margin-bottom: 10px;
+}
