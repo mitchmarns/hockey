@@ -81,7 +81,10 @@ function simulateInjury() {
     const team = getRandomItem(teams);
     const player = getRandomItem(team.players);
     const injuryType = Math.random() > 0.5 ? 'short-term' : 'long-term';
-    let gamesMissed = injuryType === 'short-term' ? Math.floor(Math.random() * 3) + 1 : Math.floor(Math.random() * 6) + 5; // Short-term: 1-3 games, Long-term: 5-10 games
+    let gamesMissed = 
+      injuryType === 'short-term' 
+      ? Math.floor(Math.random() * 3) + 1 
+      : Math.floor(Math.random() * 6) + 5; // Short-term: 1-3 games, Long-term: 5-10 games
     return { player: player.name, injuryType, gamesMissed };
   }
   return null;
@@ -148,16 +151,14 @@ function updatePlayerStats(events) {
 
     // Update injuries
     if (event.injury) {
-      const player = playerStats.find(p => p.name === event.injury.player);
-      if (player) {
-        // Add the injury with the number of games missed
-        player.injuries.push({
-          injuryType: event.injury.injuryType,
-          gamesMissed: event.injury.gamesMissed
-        });
-      }
-    }
-  });
+  const { player, injuryType, gamesMissed } = event.injury; // Destructure for clarity
+  if (player && injuryType && gamesMissed !== undefined) {
+    const injuryDetails = `${player} is injured (${injuryType}), missing ${gamesMissed} games.`;
+    eventText += ` - Injury: ${injuryDetails}`;
+  } else {
+    console.error("Injury details are missing or undefined:", event.injury); // Debugging
+  }
+});
 
 
    // Save the updated player stats to localStorage
