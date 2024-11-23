@@ -40,9 +40,19 @@ function saveGameToHistory(gameResult) {
   }
 }
 
-// Simulate a game when the button is clicked
+// Main game simulation logic
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("simulate-button").addEventListener("click", () => {
+  console.log("Simulator page loaded."); // Debugging message
+
+  const simulateButton = document.getElementById("simulate-button");
+  if (!simulateButton) {
+    console.error("Simulate button not found in the DOM!");
+    return;
+  }
+
+  simulateButton.addEventListener("click", () => {
+    console.log("Simulate button clicked."); // Debugging message
+
     const [team1, team2] = pickTeams();
 
     const team1Score = Math.floor(Math.random() * 5);
@@ -92,24 +102,6 @@ document.addEventListener("DOMContentLoaded", () => {
           .join("")}
       </ul>
     `;
-  });
-});
-    // Display the results dynamically
-    const resultDiv = document.getElementById("simulation-result");
-    resultDiv.innerHTML = `
-      <h2>Game Results</h2>
-      <p>${team1.name}: ${team1Score} vs ${team2.name}: ${team2Score}</p>
-      <h3>Event Summary</h3>
-      <ul>
-        ${events
-          .map(
-            (event) =>
-              `<li>${event.team}: ${event.scorer} scored (${event.assist}) ${
-                event.penalty ? `- ${event.penalty}` : ""
-              }</li>`
-          )
-          .join("")}
-      </ul>
-    `;
+    console.log("Game simulated and results displayed."); // Debugging message
   });
 });
