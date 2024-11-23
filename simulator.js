@@ -17,51 +17,75 @@ function pickTeams() {
   let team2Index;
   do {
     team2Index = Math.floor(Math.random() * teams.length);
-  } while (team1Index === team2Index); // Ensure different teams are selected
+  } while (team1Index === team2Index);
 
   return [teams[team1Index], teams[team2Index]];
 }
 
-// Simulate a game
-document.getElementById("simulate-button").addEventListener("click", () => {
-  // Pick two random teams
-  const [team1, team2] = pickTeams();
+// Load existing game history from localStorage
+function loadGameHistory() {
+  const history = localStorage.getItem("gameHistory");
+  return history ? JSON.parse(history) : [];
+}
 
-  // Random scores
-  const team1Score = Math.floor(Math.random() * 5);
-  const team2Score = Math.floor(Math.random() * 5);
+// Save game history to localStorage
+function saveGameToHistory(gameResult) {
+  const history = loadGameHistory();
+  history.push(gameResult);
+  localStorage.setItem("gameHistory", JSON.stringify(history));
+}
 
-  // Generate random events
-  const events = [];
-  for (let i = 0; i < Math.max(team1Score, team2Score); i++) {
-    const scoringTeam = Math.random() > 0.5 ? team1 : team2;
-    const scorer = getRandomItem(scoringTeam.players);
-    const assister = Math.random() > 0.5 ? getRandomItem(scoringTeam.players) : "Unassisted";
-    const penalty = Math.random() > 0.8 ? `${getRandomItem(scoringTeam.players)} received a penalty` : null;
+// Simulate a game when the button is clicked
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("simulate-button").addEventListener("click", () => {
+    const [team1, team2] = pickTeams();
 
-    events.push({
-      team: scoringTeam.name,
-      scorer: scorer,
-      assist: assister,
-      penalty: penalty,
-    });
-  }
+    const team1Score = Math.floor(Math.random() * 5);
+    const team2Score = Math.floor(Math.random() * 5);
 
-  // Display results
-  const resultDiv = document.getElementById("simulation-result");
-  resultDiv.innerHTML = `
-    <h2>Game Results</h2>
-    <p>${team1.name}: ${team1Score} vs ${team2.name}: ${team2Score}</p>
-    <h3>Event Summary</h3>
-    <ul>
-      ${events
-        .map(
-          (event) =>
-            `<li>${event.team}: ${event.scorer} scored (${event.assist}) ${
-              event.penalty ? `- ${event.penalty}` : ""
-            }</li>`
-        )
-        .join("")}
-    </ul>
-  `;
+    const events = [];
+    for (let i = 0; i < Math.max(team1Score, team2Score); i++) {
+      const scoringTeam = Math.random() > 0.5 ? team1 : team2;
+      const scorer = getRandomItem(scoringTeam.players);
+      const assister = Math.random() > 0.5 ? getRandomItem(scoringTeam.players) : "Unassisted";
+      const penalty = Math.random() > 0.8 ? `${getRandomItem(scoringTeam.players)} received a penalty` : null;
+
+      events.push({
+        team: scoringTeam.name,
+        scorer: scorer,
+        assist: assister,
+        penalty: penalty,
+      });
+    }
+
+    const gameResult = {
+      team1: team1.name,
+      team2: team2.name,
+      score1: team1Score,
+      score2: team2Score,
+      events: events,
+      date: new Date().toLocaleString(), // Add a timestamp
+    };
+
+    // Save the game result to localStorage
+    saveGameToHistory(gameResult);
+
+    // Display the results dynamically
+    const resultDiv = document.getElementById("simulation-result");
+    resultDiv.innerHTML = `
+      <h2>Game Results</h2>
+      <p>${team1.name}: ${team1Score} vs ${team2.name}: ${team2Score}</p>
+      <h3>Event Summary</h3>
+      <ul>
+        ${events
+          .map(
+            (event) =>
+              `<li>${event.team}: ${event.scorer} scored (${event.assist}) ${
+                event.penalty ? `- ${event.penalty}` : ""
+              }</li>`
+          )
+          .join("")}
+      </ul>
+    `;
+  });
 });
