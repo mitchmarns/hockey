@@ -19,16 +19,16 @@ document.addEventListener("DOMContentLoaded", function() {
   // Load and display player stats from localStorage
   function loadPlayerStats() {
     const statsContainer = document.getElementById("stats-container");
-    const playerStats = JSON.parse(localStorage.getItem("playerStats"));
+    const playerStats = JSON.parse(localStorage.getItem("playerStats")) || [];
 
     // Clear any existing content
     statsContainer.innerHTML = ''; 
 
     // Check if stats are present and valid
-    if (playerStats && Array.isArray(playerStats) && playerStats.length > 0) {
-      playerStats.forEach(player => {
-        const playerDiv = document.createElement("div");
-        playerDiv.classList.add("player-stats");
+    if (playerStats.length > 0) {
+    playerStats.forEach(player => {
+      const playerDiv = document.createElement("div");
+      playerDiv.classList.add("player-stats");
         
         // Display injuries as a list
         const injuriesList = player.injuries.length > 0 ? player.injuries.join(', ') : 'None';
