@@ -29,12 +29,16 @@ document.addEventListener("DOMContentLoaded", function() {
       playerStats.forEach(player => {
         const playerDiv = document.createElement("div");
         playerDiv.classList.add("player-stats");
+        
+        // Display injuries as a list
+        const injuriesList = player.injuries.length > 0 ? player.injuries.join(', ') : 'None';
+        
         playerDiv.innerHTML = `
           <h3>${player.name}</h3>
           <p>Goals: ${player.goals}</p>
           <p>Assists: ${player.assists}</p>
           <p>Penalties: ${player.penalties}</p>
-          <p>Injuries: ${player.injuries.length > 0 ? player.injuries.join(', ') : 'None'}</p> <!-- Display injuries as a list -->
+          <p>Injuries: ${injuriesList}</p> <!-- Display injuries here -->
         `;
         statsContainer.appendChild(playerDiv);
       });
