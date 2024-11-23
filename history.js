@@ -11,7 +11,7 @@ function loadGameHistory() {
 
 // Display game history on the page
 document.addEventListener("DOMContentLoaded", () => {
-  const gameHistory = loadGameHistory();
+  const gameHistory = loadGameHistory();  // This should work now, as function is defined above
   const historyDiv = document.getElementById("game-history");
 
   if (gameHistory.length === 0) {
