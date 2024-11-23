@@ -156,7 +156,8 @@ function updatePlayerStats(events) {
   if (injuredPlayer) {
     injuredPlayer.injuries.push({ type: injuryType, gamesMissed });
   }
-});
+  }
+  });
 
 
    // Save the updated player stats to localStorage
