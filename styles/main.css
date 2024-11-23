@@ -61,6 +61,7 @@ ul li {
   margin: 5px 0;
 }
 
+
 .player-stats {
   margin: 15px;
   padding: 10px;
@@ -72,10 +73,16 @@ ul li {
   flex-direction: column;
 }
 
-form {
+button {
   margin-top: 20px;
+  padding: 10px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  cursor: pointer;
 }
 
-label, input {
-  margin-bottom: 10px;
+button:hover {
+  background-color: #d32f2f;
 }
+
