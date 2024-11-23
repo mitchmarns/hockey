@@ -113,75 +113,60 @@
 
         // Function to save data to localStorage
         function saveData() {
-    localStorage.setItem('teams', JSON.stringify(teams));
-    localStorage.setItem('players', JSON.stringify(players));
-    console.log('Data saved to localStorage');
-}
+            localStorage.setItem('teams', JSON.stringify(teams));
+            localStorage.setItem('players', JSON.stringify(players));
+        }
 
         // Simulate the game and update stats
         function simulateGame() {
-    const teamNames = ['Sharks', 'Tigers', 'Bears', 'Wolves'];
-    
-    // Pick two random teams
-    const team1Name = teamNames[Math.floor(Math.random() * teamNames.length)];
-    let team2Name = teamNames[Math.floor(Math.random() * teamNames.length)];
+            const teamNames = ['Sharks', 'Tigers', 'Bears', 'Wolves'];
+            const team1Name = teamNames[Math.floor(Math.random() * teamNames.length)];
+            let team2Name = teamNames[Math.floor(Math.random() * teamNames.length)];
 
-    // Ensure the teams are different
-    while (team1Name === team2Name) {
-        team2Name = teamNames[Math.floor(Math.random() * teamNames.length)];
-    }
+            while (team1Name === team2Name) {
+                team2Name = teamNames[Math.floor(Math.random() * teamNames.length)];
+            }
 
-    console.log(`Selected teams: ${team1Name} vs ${team2Name}`);
+            const team1 = teams[team1Name];
+            const team2 = teams[team2Name];
 
-    const team1 = teams[team1Name];
-    const team2 = teams[team2Name];
+            const team1Score = generateGoals(team1.skill);
+            const team2Score = generateGoals(team2.skill);
 
-    const team1Score = generateGoals(team1.skill);
-    const team2Score = generateGoals(team2.skill);
+            const team1Scorers = simulateGoals(team1.players, team1Score);
+            const team2Scorers = simulateGoals(team2.players, team2Score);
 
-    console.log(`Generated scores: ${team1Score} - ${team2Score}`);
+            team1.goalsScored += team1Score;
+            team2.goalsScored += team2Score;
+            team1.totalGoals += team1Score;
+            team2.totalGoals += team2Score;
 
-    const team1Scorers = simulateGoals(team1.players, team1Score);
-    const team2Scorers = simulateGoals(team2.players, team2Score);
+            if (team1Score > team2Score) {
+                team1.wins++;
+                team2.losses++;
+            } else if (team1Score < team2Score) {
+                team2.wins++;
+                team1.losses++;
+            } else {
+                team1.draws++;
+                team2.draws++;
+            }
 
-    console.log(`Scorers: ${team1Name}: ${team1Scorers.join(', ')}, ${team2Name}: ${team2Scorers.join(', ')}`);
+            updatePlayerStats(team1Scorers, team1Score);
+            updatePlayerStats(team2Scorers, team2Score);
 
-    // Update the team stats
-    team1.goalsScored += team1Score;
-    team2.goalsScored += team2Score;
-    team1.totalGoals += team1Score;
-    team2.totalGoals += team2Score;
+            const outcome = 
+                <p><strong>${team1Name} ${team1Score} - ${team2Score} ${team2Name}</strong></p>
+                <p>Scorers for ${team1Name}: ${team1Scorers.join(', ')}</p>
+                <p>Scorers for ${team2Name}: ${team2Scorers.join(', ')}</p>
+            ;
+            document.getElementById('gameOutcome').innerHTML = outcome;
 
-    if (team1Score > team2Score) {
-        team1.wins++;
-        team2.losses++;
-    } else if (team1Score < team2Score) {
-        team2.wins++;
-        team1.losses++;
-    } else {
-        team1.draws++;
-        team2.draws++;
-    }
+            displayTeamStats();
+            displayPlayerStats();
 
-    // Update player stats based on goals
-    updatePlayerStats(team1Scorers, team1Score);
-    updatePlayerStats(team2Scorers, team2Score);
-
-    // Prepare and display outcome
-    const outcome = `
-        <p><strong>${team1Name} ${team1Score} - ${team2Score} ${team2Name}</strong></p>
-        <p>Scorers for ${team1Name}: ${team1Scorers.join(', ')}</p>
-        <p>Scorers for ${team2Name}: ${team2Scorers.join(', ')}</p>
-    `;
-    document.getElementById('gameOutcome').innerHTML = outcome;
-
-    // Update team and player stats on screen
-    displayTeamStats();
-    displayPlayerStats();
-
-    // Save updated data to localStorage
-    saveData();
-}
+            saveData(); // Save the updated data to localStorage
+        }
 
         // Generate random goals scored based on skill (adjusted formula)
         function generateGoals(skill) {
@@ -214,24 +199,24 @@
             let statsHTML = '';
             for (let teamName in teams) {
                 const team = teams[teamName];
-                statsHTML += `
+                statsHTML += 
                     <div class="team">${teamName} - Wins: ${team.wins}, Losses: ${team.losses}, Goals Scored: ${team.goalsScored}, Total Goals: ${team.totalGoals}</div>
-        `;
-    }
-    document.getElementById('teamStats').innerHTML = statsHTML;
-}
+                ;
+            }
+            document.getElementById('teamStats').innerHTML = statsHTML;
+        }
 
         // Display player stats
         function displayPlayerStats() {
             let statsHTML = '';
             for (let playerName in players) {
                 const player = players[playerName];
-                statsHTML += `
+                statsHTML += 
                     <div class="player">${playerName} - Goals: ${player.goals}, Assists: ${player.assists}</div>
-        `;
-    }
-    document.getElementById('playerStats').innerHTML = statsHTML;
-}
+                ;
+            }
+            document.getElementById('playerStats').innerHTML = statsHTML;
+        }
 
         // Restart the season
         function restartSeason() {
@@ -251,12 +236,9 @@
 
         // Initialize display on page load
         window.onload = function() {
-    console.log('Loaded teams:', teams);
-    console.log('Loaded players:', players);
-
-    displayTeamStats();
-    displayPlayerStats();
-};
+            displayTeamStats();
+            displayPlayerStats();
+        };
     </script>
 
 </body>
