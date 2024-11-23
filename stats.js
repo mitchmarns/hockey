@@ -4,10 +4,10 @@ document.addEventListener("DOMContentLoaded", function() {
   // Initialize the player stats if they don't exist
   function initializePlayerStats() {
     const defaultPlayers = [
-      { name: "Alice", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-      { name: "Bob", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-      { name: "Charlie", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-      { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: 0 }
+      { name: "Alice", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Bob", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Charlie", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: [] }
     ];
 
     // Check if player stats already exist in localStorage
@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", function() {
           <p>Goals: ${player.goals}</p>
           <p>Assists: ${player.assists}</p>
           <p>Penalties: ${player.penalties}</p>
-          <p>Injuries: ${player.injuries}</p> <!-- Display injuries -->
+          <p>Injuries: ${player.injuries.length > 0 ? player.injuries.join(', ') : 'None'}</p> <!-- Display injuries as a list -->
         `;
         statsContainer.appendChild(playerDiv);
       });
@@ -46,10 +46,10 @@ document.addEventListener("DOMContentLoaded", function() {
   // Reset all player stats to default values (0)
   function resetPlayerStats() {
     const defaultPlayers = [
-      { name: "Alice", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-      { name: "Bob", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-      { name: "Charlie", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-      { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: 0 }
+      { name: "Alice", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Bob", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Charlie", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: [] }
     ];
 
     // Save the default stats to localStorage
