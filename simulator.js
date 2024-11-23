@@ -233,8 +233,9 @@ document.addEventListener("DOMContentLoaded", () => {
               
               // If there is an injury, append it
           if (event.injury) {
-            eventText += ` - Injury: ${event.injury}`;
-          }
+          const injuryDetails = `${event.injury.player} is injured (${event.injury.type}), missing ${event.injury.missedGames} games.`;
+          eventText += ` - Injury: ${injuryDetails}`;
+        }
               // Return the formatted event item
           return `<li>${eventText}</li>`;
         }
