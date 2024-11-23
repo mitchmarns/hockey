@@ -130,6 +130,11 @@ function updatePlayerStats(events) {
 
   // Update player stats based on the events from the simulation
   events.forEach(event => {
+    
+    // Skip players with injuries still active
+    const isInjured = playerStats.some(p => p.name === event.scorer && p.injuries.some(injury => injury.gamesRemaining > 0));
+    if (isInjured) return; // Skip the event if the player is injured
+    
     // Update goals and assists
     if (event.scorer) {
       const scorer = playerStats.find(p => p.name === event.scorer);
@@ -149,14 +154,14 @@ function updatePlayerStats(events) {
       if (player) player.penalties += 1;
     }
 
-    // Update injuries
+    // Update injuries and their countdown
     if (event.injury) {
-  const { player, injuryType, gamesMissed } = event.injury; // Destructure for clarity
-  const injuredPlayer = playerStats.find((p) => p.name === player);
-  if (injuredPlayer) {
-    injuredPlayer.injuries.push({ type: injuryType, gamesMissed });
-  }
-  }
+      const { player, injuryType, gamesMissed } = event.injury; // Destructure for clarity
+      const injuredPlayer = playerStats.find((p) => p.name === player);
+      if (injuredPlayer) {
+        injuredPlayer.injuries.push({ type: injuryType, gamesMissed, gamesRemaining: gamesMissed });
+      }
+    }
   });
 
 
@@ -172,6 +177,19 @@ document.addEventListener("DOMContentLoaded", () => {
   simulateButton.addEventListener("click", () => {
     const [team1, team2] = pickTeams();
 
+    // Update injury countdown for players 
+    const playerStats = JSON.parse(localStorage.getItem("playerStats"));
+    playerStats.forEach(player => {
+      player.injuries.forEach(injury => {
+        if (injury.gamesRemaining > 0) {
+          injury.gamesRemaining -= 1;  // Decrease the remaining games for each injury
+        }
+      });
+    });
+
+    // Save the updated player stats after injury countdown
+    localStorage.setItem("playerStats", JSON.stringify(playerStats));
+
     const team1Score = Math.floor(Math.random() * 5);
     const team2Score = Math.floor(Math.random() * 5);
 
@@ -182,6 +200,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const assister = Math.random() > 0.5 ? getRandomItem(scoringTeam.players) : "Unassisted";
       const penalty = simulatePenalty();
       const injury = simulateInjury();
+
+      // Ensure injured players don't participate in events
+      if (playerStats.some(p => p.name === scorer.name && p.injuries.some(i => i.gamesRemaining > 0))) {
+        continue;  // Skip if the player is injured
+      }
 
       events.push({
         team: scoringTeam.name,
