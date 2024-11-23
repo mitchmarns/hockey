@@ -34,6 +34,22 @@ const teams = [
   }
 ];
 
+// Global variable for player stats
+let playerStats = JSON.parse(localStorage.getItem("playerStats")) || [
+  { name: "Alice", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Bob", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Charlie", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Eve", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Frank", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Grace", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Heidi", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Ivan", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Jack", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Kathy", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Leo", goals: 0, assists: 0, penalties: 0, injuries: [] },
+];
+
 // Function to randomly select an item from an array
 function getRandomItem(array) {
   return array[Math.floor(Math.random() * array.length)];
@@ -113,20 +129,6 @@ function saveGameToHistory(gameResult) {
 
 // Function to update player stats in localStorage
 function updatePlayerStats(events) {
-  let playerStats = JSON.parse(localStorage.getItem("playerStats")) || [
-    { name: "Alice", goals: 0, assists: 0, penalties: 0, injuries: [] },
-    { name: "Bob", goals: 0, assists: 0, penalties: 0, injuries: [] },
-    { name: "Charlie", goals: 0, assists: 0, penalties: 0, injuries: [] },
-    { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: [] },
-    { name: "Eve", goals: 0, assists: 0, penalties: 0, injuries: [] },
-    { name: "Frank", goals: 0, assists: 0, penalties: 0, injuries: [] },
-    { name: "Grace", goals: 0, assists: 0, penalties: 0, injuries: [] },
-    { name: "Heidi", goals: 0, assists: 0, penalties: 0, injuries: [] },
-    { name: "Ivan", goals: 0, assists: 0, penalties: 0, injuries: [] },
-    { name: "Jack", goals: 0, assists: 0, penalties: 0, injuries: [] },
-    { name: "Kathy", goals: 0, assists: 0, penalties: 0, injuries: [] },
-    { name: "Leo", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  ];
 
   // Update player stats based on the events from the simulation
   events.forEach(event => {
@@ -174,12 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!simulateButton) return;
 
   simulateButton.addEventListener("click", () => {
-    const [team1, team2] = pickTeams();
-    // Load or ensure `playerStats` is defined
-  if (!playerStats) {
-    playerStats = JSON.parse(localStorage.getItem("playerStats")) || [];
-  }
-
+    
     // Update injury countdown and remove fully recovered injuries
 playerStats.forEach(player => {
   player.injuries = player.injuries.filter(injury => {
@@ -195,6 +192,7 @@ playerStats.forEach(player => {
     // Save the updated player stats after injury countdown
     localStorage.setItem("playerStats", JSON.stringify(playerStats));
 
+    const [team1, team2] = pickTeams();
     const team1Score = Math.floor(Math.random() * 5);
     const team2Score = Math.floor(Math.random() * 5);
 
@@ -205,14 +203,6 @@ playerStats.forEach(player => {
       const assister = Math.random() > 0.5 ? getRandomItem(scoringTeam.players) : "Unassisted";
       const penalty = simulatePenalty();
       const injury = simulateInjury();
-
-      // Ensure neither scorer nor assister are injured
-if (
-  playerStats.some(p => p.name === scorer.name && p.injuries.some(i => i.gamesRemaining > 0)) ||
-  (assister !== "Unassisted" && playerStats.some(p => p.name === assister.name && p.injuries.some(i => i.gamesRemaining > 0)))
-) {
-  continue;  // Skip if the player is injured
-}
 
       events.push({
         team: scoringTeam.name,
