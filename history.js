@@ -1,15 +1,3 @@
-// Load game history from localStorage
-function loadGameHistory() {
-  const history = localStorage.getItem("gameHistory");
-  if (!history) {
-    console.log("No game history found in localStorage.");
-    return [];
-  }
-  console.log("Loaded game history:", JSON.parse(history)); // Debugging message
-  return JSON.parse(history);
-}
-
-// Display game history on the page
 document.addEventListener("DOMContentLoaded", () => {
   const gameHistory = loadGameHistory();
   const historyDiv = document.getElementById("game-history");
@@ -30,24 +18,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 Events:
                 <ul>
                   ${game.events
-                    .map(
-                      (event) => {
-                        let eventText = `${event.team}: ${event.scorer} scored (${event.assist})`;
-                        
-                        // Append penalty if it exists
-                        if (event.penalty) {
-                          eventText += ` - Penalty: ${event.penalty}`;
-                        }
-
-                        // Append injury if it exists
-                        if (event.injury) {
-                          const injuryDetails = `${event.injury.player} is injured (${event.injury.injuryType}), missing ${event.injury.gamesMissed} games.`;
-                          eventText += ` - Injury: ${injuryDetails}`;
-                        }
-
-                        return `<li>${eventText}</li>`;
+                    .map((event) => {
+                      let eventText = `${event.team}: ${event.scorer} scored (${event.assist})`;
+                      
+                      // Append penalty if it exists
+                      if (event.penalty) {
+                        eventText += ` - Penalty: ${event.penalty}`;
                       }
-                    )
+
+                      // Append injury if it exists
+                      if (event.injury) {
+                        const injuryDetails = `${event.injury.player} is injured (${event.injury.injuryType}), missing ${event.injury.gamesMissed} games.`;
+                        eventText += ` - Injury: ${injuryDetails}`;
+                      }
+
+                      // Ensure we return the HTML string
+                      return `<li>${eventText}</li>`;
+                    })
                     .join("")}
                 </ul>
               </li>`
@@ -57,10 +44,4 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     console.log("Game history rendered successfully."); // Debugging message
   }
-});
-
-// Refresh the page
-document.getElementById("reset-history").addEventListener("click", () => {
-  localStorage.removeItem("gameHistory");
-  location.reload(); 
 });
