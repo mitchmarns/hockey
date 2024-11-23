@@ -39,3 +39,8 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
   }
 });
+
+document.getElementById("reset-history").addEventListener("click", () => {
+  localStorage.removeItem("gameHistory");
+  location.reload(); // Refresh the page
+});
