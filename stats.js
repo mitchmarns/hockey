@@ -31,7 +31,10 @@ document.addEventListener("DOMContentLoaded", function() {
       playerDiv.classList.add("player-stats");
         
         // Display injuries as a list
-        const injuriesList = player.injuries.length > 0 ? player.injuries.join(', ') : 'None';
+        let injuriesList = 'None';
+      if (player.injuries.length > 0) {
+        injuriesList = player.injuries.map(injury => `${injury.injuryType} (Missed ${injury.gamesMissed} games)`).join(', ');
+      }
         
         playerDiv.innerHTML = `
           <h3>${player.name}</h3>
