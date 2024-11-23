@@ -87,6 +87,8 @@ function simulateInjury() {
   return null;
 }
 
+
+
 // Function to load existing game history from localStorage
 function loadGameHistory() {
   const history = localStorage.getItem("gameHistory"); // Correctly using localStorage
@@ -181,6 +183,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const penalty = simulatePenalty();
       const injury = simulateInjury();
 
+      let injuryText = "";
+  if (injury) {
+    injuryText = `${injury.player} is injured (${injury.injuryType}), missing ${injury.gamesMissed} games.`;
+  }
+
       events.push({
         team: scoringTeam.name,
         scorer: scorer.name,
@@ -215,11 +222,22 @@ document.addEventListener("DOMContentLoaded", () => {
       <ul>
         ${events
           .map(
-            (event) =>
-              `<li>${event.team}: ${event.scorer} scored (${event.assist}) ${
-                event.penalty ? `- ${event.penalty}` : ""}
-                ${event.injury ? `- ${event.injury}` : ""}
-              </li>`
+            (event) => {
+              // Create the main text for each event
+              let eventText = `${event.team}: ${event.scorer} scored (${event.assist})`;
+
+              // If there is a penalty, append it
+          if (event.penalty) {
+            eventText += ` - Penalty: ${event.penalty}`;
+          }
+              
+              // If there is an injury, append it
+          if (event.injury) {
+            eventText += ` - Injury: ${event.injury}`;
+          }
+              // Return the formatted event item
+          return `<li>${eventText}</li>`;
+        }
           )
           .join("")}
       </ul>
