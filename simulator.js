@@ -30,9 +30,14 @@ function loadGameHistory() {
 
 // Save game history to localStorage
 function saveGameToHistory(gameResult) {
-  const history = loadGameHistory();
-  history.push(gameResult);
-  localStorage.setItem("gameHistory", JSON.stringify(history));
+  try {
+    const history = loadGameHistory();
+    history.push(gameResult);
+    localStorage.setItem("gameHistory", JSON.stringify(history));
+    console.log("Game saved successfully:", gameResult); // Debugging message
+  } catch (error) {
+    console.error("Error saving game to history:", error);
+  }
 }
 
 // Simulate a game when the button is clicked
@@ -70,6 +75,25 @@ document.addEventListener("DOMContentLoaded", () => {
     // Save the game result to localStorage
     saveGameToHistory(gameResult);
 
+    // Display the results dynamically
+    const resultDiv = document.getElementById("simulation-result");
+    resultDiv.innerHTML = `
+      <h2>Game Results</h2>
+      <p>${team1.name}: ${team1Score} vs ${team2.name}: ${team2Score}</p>
+      <h3>Event Summary</h3>
+      <ul>
+        ${events
+          .map(
+            (event) =>
+              `<li>${event.team}: ${event.scorer} scored (${event.assist}) ${
+                event.penalty ? `- ${event.penalty}` : ""
+              }</li>`
+          )
+          .join("")}
+      </ul>
+    `;
+  });
+});
     // Display the results dynamically
     const resultDiv = document.getElementById("simulation-result");
     resultDiv.innerHTML = `
