@@ -7,7 +7,15 @@ document.addEventListener("DOMContentLoaded", function() {
       { name: "Alice", goals: 0, assists: 0, penalties: 0, injuries: [] },
       { name: "Bob", goals: 0, assists: 0, penalties: 0, injuries: [] },
       { name: "Charlie", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: [] }
+      { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Eve", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Frank", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Grace", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Heidi", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Ivan", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Jack", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Kathy", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Leo", goals: 0, assists: 0, penalties: 0, injuries: [] }
     ];
 
     // Check if player stats already exist in localStorage
@@ -30,20 +38,21 @@ document.addEventListener("DOMContentLoaded", function() {
       const playerDiv = document.createElement("div");
       playerDiv.classList.add("player-stats");
         
-        // Display injuries as a list
-        let injuriesList = 'None';
-      if (Array.isArray(player.injuries) && player.injuries.length > 0) {
-  injuriesList = player.injuries
-    .map(injury =>  `${injury.injuryType} (Missed ${injury.gamesMissed} games)`)
-    .join(', ');
-}
+        // Determine injury status
+        let injuryStatus = "No"; // Default is "No" if no injuries exist
+        if (Array.isArray(player.injuries) && player.injuries.length > 0) {
+          const activeInjuries = player.injuries.filter(injury => injury.gamesRemaining > 0);
+          if (activeInjuries.length > 0) {
+            injuryStatus = `Yes (${activeInjuries[0].gamesRemaining} games left)`; // Show games remaining for the first active injury
+          }
+        }
         
         playerDiv.innerHTML = `
           <h3>${player.name}</h3>
           <p>Goals: ${player.goals}</p>
           <p>Assists: ${player.assists}</p>
           <p>Penalties: ${player.penalties}</p>
-          <p>Injuries: ${injuriesList}</p> <!-- Display injuries here -->
+          <p>Injuries: ${injuryStatus}</p> <!-- Display 'Yes' or 'No' with games remaining -->
         `;
         statsContainer.appendChild(playerDiv);
       });
@@ -58,7 +67,15 @@ document.addEventListener("DOMContentLoaded", function() {
       { name: "Alice", goals: 0, assists: 0, penalties: 0, injuries: [] },
       { name: "Bob", goals: 0, assists: 0, penalties: 0, injuries: [] },
       { name: "Charlie", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: [] }
+      { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Eve", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Frank", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Grace", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Heidi", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Ivan", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Jack", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Kathy", goals: 0, assists: 0, penalties: 0, injuries: [] },
+      { name: "Leo", goals: 0, assists: 0, penalties: 0, injuries: [] }
     ];
 
     // Save the default stats to localStorage
