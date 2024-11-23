@@ -34,9 +34,7 @@ document.addEventListener("DOMContentLoaded", function() {
         let injuriesList = 'None';
       if (Array.isArray(player.injuries) && player.injuries.length > 0) {
   injuriesList = player.injuries
-    .map(injury => {
-      return `${injury.injuryType} (Missed ${injury.gamesMissed} games)`
-    })
+    .map(injury =>  `${injury.injuryType} (Missed ${injury.gamesMissed} games)`)
     .join(', ');
 }
         
