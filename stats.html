@@ -20,24 +20,8 @@
     <div id="stats-container">
       <!-- Player stats will be dynamically loaded here -->
     </div>
-    
-    <h2>Update Player Stats</h2>
-    <form id="update-stats-form">
-      <label for="player-name">Player Name:</label>
-      <input type="text" id="player-name" name="player-name" required>
-      
-      <label for="goals">Goals:</label>
-      <input type="number" id="goals" name="goals" value="0" min="0">
-      
-      <label for="assists">Assists:</label>
-      <input type="number" id="assists" name="assists" value="0" min="0">
-      
-      <label for="penalties">Penalties:</label>
-      <input type="number" id="penalties" name="penalties" value="0" min="0">
-      
-      <button type="submit">Update Stats</button>
-    </form>
+    <button id="reset-stats">Reset Stats</button>
   </main>
-  <script src="stats.js"></script>
+  <script src="player_stats.js"></script>
 </body>
 </html>
