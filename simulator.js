@@ -208,8 +208,9 @@ document.addEventListener("DOMContentLoaded", () => {
           .map(
             (event) =>
               `<li>${event.team}: ${event.scorer} scored (${event.assist}) ${
-                event.penalty ? `- ${event.penalty}` : ""
-              }</li>`
+                event.penalty ? `- ${event.penalty}` : ""}
+                ${event.injury ? `- ${event.injury}` : ""}
+              </li>`
           )
           .join("")}
       </ul>
