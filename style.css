@@ -55,3 +55,19 @@ li {
     margin: 5px 0;
     border-radius: 5px;
 }
+
+#game-controls {
+    margin-top: 30px;
+}
+
+#game-results {
+    margin-top: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.player-stats {
+    margin-top: 10px;
+    font-size: 0.9em;
+    text-align: left;
+}
