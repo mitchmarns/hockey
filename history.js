@@ -1,3 +1,15 @@
+// Load game history from localStorage
+function loadGameHistory() {
+  const history = localStorage.getItem("gameHistory");
+  if (!history) {
+    console.log("No game history found in localStorage.");
+    return [];
+  }
+  console.log("Loaded game history:", JSON.parse(history)); // Debugging message
+  return JSON.parse(history);
+}
+
+// Display game history on the page
 document.addEventListener("DOMContentLoaded", () => {
   const gameHistory = loadGameHistory();
   const historyDiv = document.getElementById("game-history");
@@ -44,4 +56,10 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     console.log("Game history rendered successfully."); // Debugging message
   }
+});
+
+// Optional: Refresh the page when reset button is clicked
+document.getElementById("reset-history").addEventListener("click", () => {
+  localStorage.removeItem("gameHistory");
+  location.reload(); 
 });
