@@ -138,12 +138,14 @@ function updatePlayerStats(events) {
 
     // Update penalties
     if (event.penalty) {
+      const playerName = event.penalty.split(' ')[0];
       const player = playerStats.find(p => p.name === event.penalty.split(' ')[0]);
       if (player) player.penalties += 1;
     }
 
     // Update injuries
     if (event.injury) {
+      const playerName = event.injury.split(' ')[0];
       const player = playerStats.find(p => p.name === event.injury.split(' ')[0]);
       if (player) player.injuries += 1;
     }
