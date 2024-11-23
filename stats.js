@@ -4,10 +4,10 @@ document.addEventListener("DOMContentLoaded", function() {
   // Initialize the player stats if they don't exist
   function initializePlayerStats() {
     const defaultPlayers = [
-      { name: "Alice", goals: 0, assists: 0, penalties: 0 },
-      { name: "Bob", goals: 0, assists: 0, penalties: 0 },
-      { name: "Charlie", goals: 0, assists: 0, penalties: 0 },
-      { name: "Dave", goals: 0, assists: 0, penalties: 0 }
+      { name: "Alice", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+      { name: "Bob", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+      { name: "Charlie", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+      { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: 0 }
     ];
 
     // Check if player stats already exist in localStorage
