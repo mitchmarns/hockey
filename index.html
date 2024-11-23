@@ -113,9 +113,10 @@
 
         // Function to save data to localStorage
         function saveData() {
-            localStorage.setItem('teams', JSON.stringify(teams));
-            localStorage.setItem('players', JSON.stringify(players));
-        }
+    localStorage.setItem('teams', JSON.stringify(teams));
+    localStorage.setItem('players', JSON.stringify(players));
+    console.log('Data saved to localStorage');
+}
 
         // Simulate the game and update stats
         function simulateGame() {
@@ -236,9 +237,12 @@
 
         // Initialize display on page load
         window.onload = function() {
-            displayTeamStats();
-            displayPlayerStats();
-        };
+    console.log('Loaded teams:', teams);
+    console.log('Loaded players:', players);
+
+    displayTeamStats();
+    displayPlayerStats();
+};
     </script>
 
 </body>
