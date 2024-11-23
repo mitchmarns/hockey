@@ -81,7 +81,8 @@ function simulateInjury() {
     const team = getRandomItem(teams);
     const player = getRandomItem(team.players);
     const injuryType = Math.random() > 0.5 ? 'short-term' : 'long-term';
-    return `${player.name} injured: ${injuryType}`;
+    let gamesMissed = injuryType === 'short-term' ? Math.floor(Math.random() * 3) + 1 : Math.floor(Math.random() * 6) + 5; // Short-term: 1-3 games, Long-term: 5-10 games
+    return { player: player.name, injuryType, gamesMissed };
   }
   return null;
 }
