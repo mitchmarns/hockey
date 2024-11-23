@@ -19,34 +19,36 @@ function pickTeams() {
     team2Index = Math.floor(Math.random() * teams.length);
   } while (team1Index === team2Index);
 
+  console.log("Teams picked:", teams[team1Index].name, "vs", teams[team2Index].name); // Debugging message
   return [teams[team1Index], teams[team2Index]];
 }
 
-// Load existing game history from localStorage
+// Function to load existing game history from localStorage
 function loadGameHistory() {
-  const history = localStorage.getItem("gameHistory");
+  const history = localStorage.getItem("gameHistory"); // Correctly using localStorage
+  console.log("Loaded game history:", history); // Debugging message
   return history ? JSON.parse(history) : [];
 }
 
-// Save game history to localStorage
+// Function to save game history to localStorage
 function saveGameToHistory(gameResult) {
   try {
     const history = loadGameHistory();
     history.push(gameResult);
-    localStorage.setItem("gameHistory", JSON.stringify(history));
-    console.log("Game saved successfully:", gameResult); // Debugging message
+    localStorage.setItem("gameHistory", JSON.stringify(history)); // Correctly using localStorage
+    console.log("Game saved to history:", gameResult); // Debugging message
   } catch (error) {
     console.error("Error saving game to history:", error);
   }
 }
 
-// Main game simulation logic
+// Main simulation logic
 document.addEventListener("DOMContentLoaded", () => {
   console.log("Simulator page loaded."); // Debugging message
 
   const simulateButton = document.getElementById("simulate-button");
   if (!simulateButton) {
-    console.error("Simulate button not found in the DOM!");
+    console.error("Simulate button not found in the DOM!"); // Debugging message
     return;
   }
 
