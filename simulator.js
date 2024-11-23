@@ -146,8 +146,14 @@ function updatePlayerStats(events) {
 
     // Update injuries
     if (event.injury) {
-      const player = playerStats.find(p => p.name === event.injury.split(' ')[0]);
-      if (player) player.injuries.push(event.injury);  // Add injury to player's injury array
+      const player = playerStats.find(p => p.name === event.injury.player);
+      if (player) {
+        // Add the injury with the number of games missed
+        player.injuries.push({
+          injuryType: event.injury.injuryType,
+          gamesMissed: event.injury.gamesMissed
+        });
+      }
     }
   });
 
