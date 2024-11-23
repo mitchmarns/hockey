@@ -81,7 +81,7 @@ function simulateInjury() {
     const team = getRandomItem(teams);
     const player = getRandomItem(team.players);
     const injuryType = Math.random() > 0.5 ? 'short-term' : 'long-term';
-    return `${player.name} injured: ${injuryType}`;
+    return `${player.name} injuryType: ${injuryType}`;
   }
   return null;
 }
@@ -145,11 +145,13 @@ function updatePlayerStats(events) {
 
     // Update injuries
     if (event.injury) {
-      const playerName = event.injury.split(' ')[0];
-      const player = playerStats.find(p => p.name === event.injury.split(' ')[0]);
-      if (player) player.injuries += 1;
+      const player = playerStats.find(p => p.name === event.injury.player);
+      if (player) {
+        player.injuries.push(event.injury.injuryType); // Store injury type
+      }
     }
   });
+
 
    // Save the updated player stats to localStorage
   localStorage.setItem("playerStats", JSON.stringify(playerStats));
