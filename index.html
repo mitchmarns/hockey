@@ -155,11 +155,11 @@
             updatePlayerStats(team1Scorers, team1Score);
             updatePlayerStats(team2Scorers, team2Score);
 
-            const outcome = 
-                <p><strong>${team1Name} ${team1Score} - ${team2Score} ${team2Name}</strong></p>
-                <p>Scorers for ${team1Name}: ${team1Scorers.join(', ')}</p>
-                <p>Scorers for ${team2Name}: ${team2Scorers.join(', ')}</p>
-            ;
+            const outcome = `
+    <p><strong>${team1Name} ${team1Score} - ${team2Score} ${team2Name}</strong></p>
+    <p>Scorers for ${team1Name}: ${team1Scorers.join(', ')}</p>
+    <p>Scorers for ${team2Name}: ${team2Scorers.join(', ')}</p>
+`;
             document.getElementById('gameOutcome').innerHTML = outcome;
 
             displayTeamStats();
@@ -199,24 +199,24 @@
             let statsHTML = '';
             for (let teamName in teams) {
                 const team = teams[teamName];
-                statsHTML += 
+                statsHTML += `
                     <div class="team">${teamName} - Wins: ${team.wins}, Losses: ${team.losses}, Goals Scored: ${team.goalsScored}, Total Goals: ${team.totalGoals}</div>
-                ;
-            }
-            document.getElementById('teamStats').innerHTML = statsHTML;
-        }
+        `;
+    }
+    document.getElementById('teamStats').innerHTML = statsHTML;
+}
 
         // Display player stats
         function displayPlayerStats() {
             let statsHTML = '';
             for (let playerName in players) {
                 const player = players[playerName];
-                statsHTML += 
+                statsHTML += `
                     <div class="player">${playerName} - Goals: ${player.goals}, Assists: ${player.assists}</div>
-                ;
-            }
-            document.getElementById('playerStats').innerHTML = statsHTML;
-        }
+        `;
+    }
+    document.getElementById('playerStats').innerHTML = statsHTML;
+}
 
         // Restart the season
         function restartSeason() {
