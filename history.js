@@ -1,7 +1,12 @@
 // Load game history from localStorage
 function loadGameHistory() {
   const history = localStorage.getItem("gameHistory");
-  return history ? JSON.parse(history) : [];
+  if (!history) {
+    console.log("No game history found in localStorage.");
+    return [];
+  }
+  console.log("Loaded game history:", JSON.parse(history)); // Debugging message
+  return JSON.parse(history);
 }
 
 // Display game history on the page
@@ -11,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (gameHistory.length === 0) {
     historyDiv.innerHTML = "<p>No games have been simulated yet.</p>";
+    console.log("Game history is empty."); // Debugging message
   } else {
     historyDiv.innerHTML = `
       <h2>Game History</h2>
@@ -37,10 +43,12 @@ document.addEventListener("DOMContentLoaded", () => {
           .join("")}
       </ul>
     `;
+    console.log("Game history rendered successfully."); // Debugging message
   }
 });
 
+// Refresh the page
 document.getElementById("reset-history").addEventListener("click", () => {
   localStorage.removeItem("gameHistory");
-  location.reload(); // Refresh the page
+  location.reload(); 
 });
