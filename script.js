@@ -24,7 +24,30 @@ const teams = [
         losses: 0,
         points: 0
     },
-    // Add similar objects for Tigers and Wolves...
+    {
+        name: "Tigers",
+        players: [
+            { name: "Lucas Black", goals: 0, assists: 0, hits: 0, penalties: 0, injured: false },
+            { name: "Lily Green", goals: 0, assists: 0, hits: 0, penalties: 0, injured: false },
+            { name: "Ethan Blue", goals: 0, assists: 0, hits: 0, penalties: 0, injured: false },
+            { name: "Grace White", goals: 0, assists: 0, hits: 0, penalties: 0, injured: false }
+        ],
+        wins: 0,
+        losses: 0,
+        points: 0
+    },
+    {
+        name: "Wolves",
+        players: [
+            { name: "Tom Hanks", goals: 0, assists: 0, hits: 0, penalties: 0, injured: false },
+            { name: "Sarah Wilson", goals: 0, assists: 0, hits: 0, penalties: 0, injured: false },
+            { name: "Jack Moore", goals: 0, assists: 0, hits: 0, penalties: 0, injured: false },
+            { name: "Emily Tan", goals: 0, assists: 0, hits: 0, penalties: 0, injured: false }
+        ],
+        wins: 0,
+        losses: 0,
+        points: 0
+    }
 ];
 
 // Game controls and results containers
@@ -44,7 +67,7 @@ function loadLeagueState() {
             teams[index].points = team.points;
         });
     } else {
-        resetSeason();
+        resetSeason(); // If no saved state exists, initialize season
     }
     renderTeams();
     renderGameButtons();
