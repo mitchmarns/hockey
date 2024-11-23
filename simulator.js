@@ -1,9 +1,37 @@
-// Define four teams and their players
+// Define four teams and their players with skill levels (e.g., shooting, passing)
 const teams = [
-  { name: "Team A", players: ["Alice", "Bob", "Charlie"] },
-  { name: "Team B", players: ["Dave", "Eve", "Frank"] },
-  { name: "Team C", players: ["Grace", "Heidi", "Ivan"] },
-  { name: "Team D", players: ["Jack", "Kathy", "Leo"] },
+  {
+    name: "Team A",
+    players: [
+      { name: "Alice", shooting: 80, passing: 70, defense: 60 },
+      { name: "Bob", shooting: 70, passing: 80, defense: 65 },
+      { name: "Charlie", shooting: 75, passing: 60, defense: 75 },
+    ]
+  },
+  {
+    name: "Team B",
+    players: [
+      { name: "Dave", shooting: 65, passing: 75, defense: 70 },
+      { name: "Eve", shooting: 80, passing: 85, defense: 50 },
+      { name: "Frank", shooting: 70, passing: 60, defense: 80 },
+    ]
+  },
+  {
+    name: "Team C",
+    players: [
+      { name: "Grace", shooting: 60, passing: 80, defense: 75 },
+      { name: "Heidi", shooting: 70, passing: 60, defense: 70 },
+      { name: "Ivan", shooting: 75, passing: 70, defense: 60 },
+    ]
+  },
+  {
+    name: "Team D",
+    players: [
+      { name: "Jack", shooting: 80, passing: 60, defense: 65 },
+      { name: "Kathy", shooting: 60, passing: 70, defense: 80 },
+      { name: "Leo", shooting: 65, passing: 75, defense: 70 },
+    ]
+  }
 ];
 
 // Function to randomly select an item from an array
@@ -21,6 +49,37 @@ function pickTeams() {
 
   console.log("Teams picked:", teams[team1Index].name, "vs", teams[team2Index].name); // Debugging message
   return [teams[team1Index], teams[team2Index]];
+}
+
+// Function to simulate a player's chance of scoring based on their shooting skill
+function simulateShooting(player) {
+  const chance = Math.random() * 100;
+  return chance <= player.shooting;
+}
+
+// Function to simulate an assist based on passing skill
+function simulateAssist(player) {
+  const chance = Math.random() * 100;
+  return chance <= player.passing;
+}
+
+// Function to simulate a penalty (randomly)
+function simulatePenalty(player) {
+  const chance = Math.random() * 100;
+  if (chance <= 20) { // 20% chance of a penalty
+    return `${player.name} received a penalty`;
+  }
+  return null;
+}
+
+// Function to simulate an injury (randomly)
+function simulateInjury(player) {
+  const chance = Math.random() * 100;
+  if (chance <= 10) { // 10% chance of injury
+    const injuryType = Math.random() > 0.5 ? 'short-term' : 'long-term';
+    return `${player.name} injured: ${injuryType}`;
+  }
+  return null;
 }
 
 // Function to load existing game history from localStorage
@@ -44,20 +103,19 @@ function saveGameToHistory(gameResult) {
 
 // Function to update player stats in localStorage
 function updatePlayerStats(events) {
-  // Load existing player stats from localStorage, or initialize with default values
   let playerStats = JSON.parse(localStorage.getItem("playerStats")) || [
-    { name: "Alice", goals: 0, assists: 0, penalties: 0 },
-    { name: "Bob", goals: 0, assists: 0, penalties: 0 },
-    { name: "Charlie", goals: 0, assists: 0, penalties: 0 },
-    { name: "Dave", goals: 0, assists: 0, penalties: 0 },
-    { name: "Eve", goals: 0, assists: 0, penalties: 0 },
-    { name: "Frank", goals: 0, assists: 0, penalties: 0 },
-    { name: "Grace", goals: 0, assists: 0, penalties: 0 },
-    { name: "Heidi", goals: 0, assists: 0, penalties: 0 },
-    { name: "Ivan", goals: 0, assists: 0, penalties: 0 },
-    { name: "Jack", goals: 0, assists: 0, penalties: 0 },
-    { name: "Kathy", goals: 0, assists: 0, penalties: 0 },
-    { name: "Leo", goals: 0, assists: 0, penalties: 0 },
+    { name: "Alice", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+    { name: "Bob", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+    { name: "Charlie", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+    { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+    { name: "Eve", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+    { name: "Frank", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+    { name: "Grace", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+    { name: "Heidi", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+    { name: "Ivan", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+    { name: "Jack", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+    { name: "Kathy", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+    { name: "Leo", goals: 0, assists: 0, penalties: 0, injuries: 0 },
   ];
 
   // Update player stats based on the events from the simulation
@@ -79,6 +137,12 @@ function updatePlayerStats(events) {
       const player = playerStats.find(p => p.name === event.penalty.split(' ')[0]);
       if (player) player.penalties += 1;
     }
+
+    // Update injuries
+    if (event.injury) {
+      const player = playerStats.find(p => p.name === event.injury.split(' ')[0]);
+      if (player) player.injuries += 1;
+    }
   });
 
    // Save the updated player stats to localStorage
@@ -87,17 +151,10 @@ function updatePlayerStats(events) {
 
 // Main simulation logic
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("Simulator page loaded."); // Debugging message
-
   const simulateButton = document.getElementById("simulate-button");
-  if (!simulateButton) {
-    console.error("Simulate button not found in the DOM!"); // Debugging message
-    return;
-  }
+  if (!simulateButton) return;
 
   simulateButton.addEventListener("click", () => {
-    console.log("Simulate button clicked."); // Debugging message
-
     const [team1, team2] = pickTeams();
 
     const team1Score = Math.floor(Math.random() * 5);
@@ -108,13 +165,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const scoringTeam = Math.random() > 0.5 ? team1 : team2;
       const scorer = getRandomItem(scoringTeam.players);
       const assister = Math.random() > 0.5 ? getRandomItem(scoringTeam.players) : "Unassisted";
-      const penalty = Math.random() > 0.8 ? `${getRandomItem(scoringTeam.players)} received a penalty` : null;
+      const penalty = simulatePenalty(scorer);
+      const injury = simulateInjury(scorer);
 
       events.push({
         team: scoringTeam.name,
-        scorer: scorer,
-        assist: assister,
+        scorer: scorer.name,
+        assist: assister.name,
         penalty: penalty,
+        injury: injury
       });
     }
 
@@ -124,8 +183,9 @@ document.addEventListener("DOMContentLoaded", () => {
       score1: team1Score,
       score2: team2Score,
       events: events,
-      date: new Date().toLocaleString(), // Add a timestamp
+      date: new Date().toLocaleString(),
     };
+
 
     // Save the game result to localStorage
     saveGameToHistory(gameResult);
