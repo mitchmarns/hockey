@@ -175,7 +175,7 @@ document.addEventListener("DOMContentLoaded", () => {
       events.push({
         team: scoringTeam.name,
         scorer: scorer.name,
-        assist: assister.name,
+        assist: assister === "Unassisted" ? "Unassisted" : assister.name, 
         penalty: penalty,
         injury: injury
       });
