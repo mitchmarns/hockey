@@ -32,9 +32,21 @@ document.addEventListener("DOMContentLoaded", () => {
                   ${game.events
                     .map(
                       (event) =>
-                        `<li>${event.team}: ${event.scorer} scored (${event.assist}) ${
-                          event.penalty ? `- ${event.penalty}` : ""
-                        }</li>`
+                        let eventText = `${event.team}: ${event.scorer} scored (${event.assist})`;
+                        
+                        // Append penalty if it exists
+                        if (event.penalty) {
+                          eventText += ` - Penalty: ${event.penalty}`;
+                        }
+
+                        // Append injury if it exists
+                        if (event.injury) {
+                          const injuryDetails = `${event.injury.player} is injured (${event.injury.injuryType}), missing ${event.injury.gamesMissed} games.`;
+                          eventText += ` - Injury: ${injuryDetails}`;
+                        }
+
+                        return `<li>${eventText}</li>`;
+                      }
                     )
                     .join("")}
                 </ul>
