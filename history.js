@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <ul>
                   ${game.events
                     .map(
-                      (event) =>
+                      (event) => {
                         let eventText = `${event.team}: ${event.scorer} scored (${event.assist})`;
                         
                         // Append penalty if it exists
