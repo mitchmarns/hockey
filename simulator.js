@@ -145,10 +145,8 @@ function updatePlayerStats(events) {
 
     // Update injuries
     if (event.injury) {
-      const player = playerStats.find(p => p.name === event.injury.player);
-      if (player) {
-        player.injuries.push(event.injury.injuryType); // Store injury type
-      }
+      const player = playerStats.find(p => p.name === event.injury.split(' ')[0]);
+      if (player) player.injuries.push(event.injury);  // Add injury to player's injury array
     }
   });
 
