@@ -1,4 +1,4 @@
-// player_stats.js
+// stats.js
 
 document.addEventListener("DOMContentLoaded", function() {
   // Initialize the player stats if they don't exist
@@ -34,7 +34,9 @@ document.addEventListener("DOMContentLoaded", function() {
         let injuriesList = 'None';
       if (Array.isArray(player.injuries) && player.injuries.length > 0) {
   injuriesList = player.injuries
-    .map(injury => `${injury.injuryType} (Missed ${injury.gamesMissed} games)`)
+    .map(injury => {
+      `${injury.injuryType} (Missed ${injury.gamesMissed} games)`
+    })
     .join(', ');
 }
         
