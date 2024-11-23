@@ -32,9 +32,11 @@ document.addEventListener("DOMContentLoaded", function() {
         
         // Display injuries as a list
         let injuriesList = 'None';
-      if (player.injuries.length > 0) {
-        injuriesList = player.injuries.map(injury => `${injury.injuryType} (Missed ${injury.gamesMissed} games)`).join(', ');
-      }
+      if (Array.isArray(player.injuries) && player.injuries.length > 0) {
+  injuriesList = player.injuries
+    .map(injury => `${injury.injuryType} (Missed ${injury.gamesMissed} games)`)
+    .join(', ');
+}
         
         playerDiv.innerHTML = `
           <h3>${player.name}</h3>
