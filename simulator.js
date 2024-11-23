@@ -42,6 +42,49 @@ function saveGameToHistory(gameResult) {
   }
 }
 
+// Function to update player stats in localStorage
+function updatePlayerStats(events) {
+  // Load existing player stats from localStorage, or initialize with default values
+  let playerStats = JSON.parse(localStorage.getItem("playerStats")) || [
+    { name: "Alice", goals: 0, assists: 0, penalties: 0 },
+    { name: "Bob", goals: 0, assists: 0, penalties: 0 },
+    { name: "Charlie", goals: 0, assists: 0, penalties: 0 },
+    { name: "Dave", goals: 0, assists: 0, penalties: 0 },
+    { name: "Eve", goals: 0, assists: 0, penalties: 0 },
+    { name: "Frank", goals: 0, assists: 0, penalties: 0 },
+    { name: "Grace", goals: 0, assists: 0, penalties: 0 },
+    { name: "Heidi", goals: 0, assists: 0, penalties: 0 },
+    { name: "Ivan", goals: 0, assists: 0, penalties: 0 },
+    { name: "Jack", goals: 0, assists: 0, penalties: 0 },
+    { name: "Kathy", goals: 0, assists: 0, penalties: 0 },
+    { name: "Leo", goals: 0, assists: 0, penalties: 0 },
+  ];
+
+  // Update player stats based on the events from the simulation
+  events.forEach(event => {
+    // Update goals and assists
+    if (event.scorer) {
+      const scorer = playerStats.find(p => p.name === event.scorer);
+      if (scorer) {
+        scorer.goals += 1;
+        if (event.assist !== "Unassisted") {
+          const assister = playerStats.find(p => p.name === event.assist);
+          if (assister) assister.assists += 1;
+        }
+      }
+    }
+
+    // Update penalties
+    if (event.penalty) {
+      const player = playerStats.find(p => p.name === event.penalty.split(' ')[0]);
+      if (player) player.penalties += 1;
+    }
+  });
+
+   // Save the updated player stats to localStorage
+  localStorage.setItem("playerStats", JSON.stringify(playerStats));
+}
+
 // Main simulation logic
 document.addEventListener("DOMContentLoaded", () => {
   console.log("Simulator page loaded."); // Debugging message
@@ -86,6 +129,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Save the game result to localStorage
     saveGameToHistory(gameResult);
+
+    // Update player stats from the simulation events
+    updatePlayerStats(events);
 
     // Display the results dynamically
     const resultDiv = document.getElementById("simulation-result");
