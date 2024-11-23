@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fictional Hockey League</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #0055a5;
+        }
+
+        .section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #0055a5;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #004080;
+        }
+
+        .reset-button {
+            background-color: #d9534f;
+        }
+
+        .reset-button:hover {
+            background-color: #c9302c;
+        }
+
+        .team, .player {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Fictional Hockey League</h1>
+
+    <!-- Game Simulation Section -->
+    <div class="section">
+        <h3>Game Simulation</h3>
+        <button onclick="simulateGame()">Simulate Game</button>
+        <div id="gameOutcome"></div>
+    </div>
+
+    <!-- Team Stats Section -->
+    <div class="section">
+        <h3>Team Stats</h3>
+        <div id="teamStats"></div>
+    </div>
+
+    <!-- Player Stats Section -->
+    <div class="section">
+        <h3>Player Stats</h3>
+        <div id="playerStats"></div>
+    </div>
+
+    <!-- Restart Season Section -->
+    <div class="section">
+        <button class="reset-button" onclick="restartSeason()">Restart Season</button>
+    </div>
+
+    <script>
+        // Initial team and player data setup
+        const defaultTeams = {
+            Sharks: { wins: 0, losses: 0, draws: 0, goalsScored: 0, goalsAllowed: 0, players: ['John Doe', 'Jake Rizzo', 'Tommy Deeds'], totalGoals: 0, skill: 250 },
+            Tigers: { wins: 0, losses: 0, draws: 0, goalsScored: 0, goalsAllowed: 0, players: ['Jane Smith', 'Lucy Black', 'Manny Fox'], totalGoals: 0, skill: 267 },
+            Bears: { wins: 0, losses: 0, draws: 0, goalsScored: 0, goalsAllowed: 0, players: ['Bob Brown', 'Alex Vega', 'Phil Marks'], totalGoals: 0, skill: 233 },
+            Wolves: { wins: 0, losses: 0, draws: 0, goalsScored: 0, goalsAllowed: 0, players: ['Max Hunter', 'Chris Snow', 'Zoe Rivers'], totalGoals: 0, skill: 247 }
+        };
+
+        const defaultPlayers = {
+            'John Doe': { team: 'Sharks', skill: 85, injuryRisk: 0.05, goals: 0, assists: 0 },
+            'Jake Rizzo': { team: 'Sharks', skill: 82, injuryRisk: 0.07, goals: 0, assists: 0 },
+            'Tommy Deeds': { team: 'Sharks', skill: 80, injuryRisk: 0.06, goals: 0, assists: 0 },
+            'Jane Smith': { team: 'Tigers', skill: 90, injuryRisk: 0.03, goals: 0, assists: 0 },
+            'Lucy Black': { team: 'Tigers', skill: 88, injuryRisk: 0.04, goals: 0, assists: 0 },
+            'Manny Fox': { team: 'Tigers', skill: 84, injuryRisk: 0.05, goals: 0, assists: 0 },
+            'Bob Brown': { team: 'Bears', skill: 80, injuryRisk: 0.10, goals: 0, assists: 0 },
+            'Alex Vega': { team: 'Bears', skill: 75, injuryRisk: 0.12, goals: 0, assists: 0 },
+            'Phil Marks': { team: 'Bears', skill: 78, injuryRisk: 0.08, goals: 0, assists: 0 },
+            'Max Hunter': { team: 'Wolves', skill: 85, injuryRisk: 0.06, goals: 0, assists: 0 },
+            'Chris Snow': { team: 'Wolves', skill: 80, injuryRisk: 0.07, goals: 0, assists: 0 },
+            'Zoe Rivers': { team: 'Wolves', skill: 82, injuryRisk: 0.05, goals: 0, assists: 0 }
+        };
+
+        // Load data from localStorage, or initialize with default data if not present
+        let teams = JSON.parse(localStorage.getItem('teams')) || defaultTeams;
+        let players = JSON.parse(localStorage.getItem('players')) || defaultPlayers;
+
+        // Function to save data to localStorage
+        function saveData() {
+            localStorage.setItem('teams', JSON.stringify(teams));
+            localStorage.setItem('players', JSON.stringify(players));
+        }
+
+        // Simulate the game and update stats
+        function simulateGame() {
+            const teamNames = ['Sharks', 'Tigers', 'Bears', 'Wolves'];
+            const team1Name = teamNames[Math.floor(Math.random() * teamNames.length)];
+            let team2Name = teamNames[Math.floor(Math.random() * teamNames.length)];
+
+            while (team1Name === team2Name) {
+                team2Name = teamNames[Math.floor(Math.random() * teamNames.length)];
+            }
+
+            const team1 = teams[team1Name];
+            const team2 = teams[team2Name];
+
+            const team1Score = generateGoals(team1.skill);
+            const team2Score = generateGoals(team2.skill);
+
+            const team1Scorers = simulateGoals(team1.players, team1Score);
+            const team2Scorers = simulateGoals(team2.players, team2Score);
+
+            team1.goalsScored += team1Score;
+            team2.goalsScored += team2Score;
+            team1.totalGoals += team1Score;
+            team2.totalGoals += team2Score;
+
+            if (team1Score > team2Score) {
+                team1.wins++;
+                team2.losses++;
+            } else if (team1Score < team2Score) {
+                team2.wins++;
+                team1.losses++;
+            } else {
+                team1.draws++;
+                team2.draws++;
+            }
+
+            updatePlayerStats(team1Scorers, team1Score);
+            updatePlayerStats(team2Scorers, team2Score);
+
+            const outcome = 
+                <p><strong>${team1Name} ${team1Score} - ${team2Score} ${team2Name}</strong></p>
+                <p>Scorers for ${team1Name}: ${team1Scorers.join(', ')}</p>
+                <p>Scorers for ${team2Name}: ${team2Scorers.join(', ')}</p>
+            ;
+            document.getElementById('gameOutcome').innerHTML = outcome;
+
+            displayTeamStats();
+            displayPlayerStats();
+
+            saveData(); // Save the updated data to localStorage
+        }
+
+        // Generate random goals scored based on skill (adjusted formula)
+        function generateGoals(skill) {
+            // Adjusted: Instead of letting the skill divide by 10, we use a capped range
+            // This is to make sure that no one team scores too high
+            const maxGoals = Math.min(Math.floor(skill / 30), 6); // Limit goals to a max of 6
+            return Math.floor(Math.random() * maxGoals + 1); // Random score from 1 to maxGoals
+        }
+
+        // Simulate the goal scorers based on team players
+        function simulateGoals(players, score) {
+            let scorers = [];
+            for (let i = 0; i < score; i++) {
+                const scorer = players[Math.floor(Math.random() * players.length)];
+                scorers.push(scorer);
+            }
+            return scorers;
+        }
+
+        // Update player stats based on goals scored
+        function updatePlayerStats(scorers, teamScore) {
+            scorers.forEach(playerName => {
+                players[playerName].goals++;
+                players[playerName].assists++;
+            });
+        }
+
+        // Display the team stats
+        function displayTeamStats() {
+            let statsHTML = '';
+            for (let teamName in teams) {
+                const team = teams[teamName];
+                statsHTML += 
+                    <div class="team">${teamName} - Wins: ${team.wins}, Losses: ${team.losses}, Goals Scored: ${team.goalsScored}, Total Goals: ${team.totalGoals}</div>
+                ;
+            }
+            document.getElementById('teamStats').innerHTML = statsHTML;
+        }
+
+        // Display player stats
+        function displayPlayerStats() {
+            let statsHTML = '';
+            for (let playerName in players) {
+                const player = players[playerName];
+                statsHTML += 
+                    <div class="player">${playerName} - Goals: ${player.goals}, Assists: ${player.assists}</div>
+                ;
+            }
+            document.getElementById('playerStats').innerHTML = statsHTML;
+        }
+
+        // Restart the season
+        function restartSeason() {
+            if (confirm('Are you sure you want to restart the season? All progress will be lost.')) {
+                // Reset the localStorage and game data
+                localStorage.removeItem('teams');
+                localStorage.removeItem('players');
+                teams = defaultTeams;
+                players = defaultPlayers;
+
+                saveData(); // Save the reset data to localStorage
+
+                // Reload the page to reflect the reset state
+                location.reload();
+            }
+        }
+
+        // Initialize display on page load
+        window.onload = function() {
+            displayTeamStats();
+            displayPlayerStats();
+        };
+    </script>
+
+</body>
+</html>
