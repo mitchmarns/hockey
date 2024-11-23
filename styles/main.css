@@ -39,3 +39,24 @@ table th, table td {
 table th {
   background: #f4f4f4;
 }
+
+#team-rosters {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.team-roster {
+  width: 300px;
+  margin: 20px;
+  padding: 10px;
+  border: 1px solid #ccc;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+ul li {
+  margin: 5px 0;
+}
