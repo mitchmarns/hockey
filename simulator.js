@@ -152,11 +152,9 @@ function updatePlayerStats(events) {
     // Update injuries
     if (event.injury) {
   const { player, injuryType, gamesMissed } = event.injury; // Destructure for clarity
-  if (player && injuryType && gamesMissed !== undefined) {
-    const injuryDetails = `${player} is injured (${injuryType}), missing ${gamesMissed} games.`;
-    eventText += ` - Injury: ${injuryDetails}`;
-  } else {
-    console.error("Injury details are missing or undefined:", event.injury); // Debugging
+  const injuredPlayer = playerStats.find((p) => p.name === player);
+  if (injuredPlayer) {
+    injuredPlayer.injuries.push({ type: injuryType, gamesMissed });
   }
 });
 
@@ -228,7 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
               
               // If there is an injury, append it
           if (event.injury) {
-          const injuryDetails = `${event.injury.player} is injured (${event.injury.injuryType}), missing ${event.injury.missedGames} games.`;
+          const injuryDetails = `${event.injury.player} is injured (${event.injury.injuryType}), missing ${event.injury.gamesMissed} games.`;
           eventText += ` - Injury: ${injuryDetails}`;
         }
               // Return the formatted event item
