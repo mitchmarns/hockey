@@ -120,54 +120,68 @@
 
         // Simulate the game and update stats
         function simulateGame() {
-            const teamNames = ['Sharks', 'Tigers', 'Bears', 'Wolves'];
-            const team1Name = teamNames[Math.floor(Math.random() * teamNames.length)];
-            let team2Name = teamNames[Math.floor(Math.random() * teamNames.length)];
+    const teamNames = ['Sharks', 'Tigers', 'Bears', 'Wolves'];
+    
+    // Pick two random teams
+    const team1Name = teamNames[Math.floor(Math.random() * teamNames.length)];
+    let team2Name = teamNames[Math.floor(Math.random() * teamNames.length)];
 
-            while (team1Name === team2Name) {
-                team2Name = teamNames[Math.floor(Math.random() * teamNames.length)];
-            }
+    // Ensure the teams are different
+    while (team1Name === team2Name) {
+        team2Name = teamNames[Math.floor(Math.random() * teamNames.length)];
+    }
 
-            const team1 = teams[team1Name];
-            const team2 = teams[team2Name];
+    console.log(`Selected teams: ${team1Name} vs ${team2Name}`);
 
-            const team1Score = generateGoals(team1.skill);
-            const team2Score = generateGoals(team2.skill);
+    const team1 = teams[team1Name];
+    const team2 = teams[team2Name];
 
-            const team1Scorers = simulateGoals(team1.players, team1Score);
-            const team2Scorers = simulateGoals(team2.players, team2Score);
+    const team1Score = generateGoals(team1.skill);
+    const team2Score = generateGoals(team2.skill);
 
-            team1.goalsScored += team1Score;
-            team2.goalsScored += team2Score;
-            team1.totalGoals += team1Score;
-            team2.totalGoals += team2Score;
+    console.log(`Generated scores: ${team1Score} - ${team2Score}`);
 
-            if (team1Score > team2Score) {
-                team1.wins++;
-                team2.losses++;
-            } else if (team1Score < team2Score) {
-                team2.wins++;
-                team1.losses++;
-            } else {
-                team1.draws++;
-                team2.draws++;
-            }
+    const team1Scorers = simulateGoals(team1.players, team1Score);
+    const team2Scorers = simulateGoals(team2.players, team2Score);
 
-            updatePlayerStats(team1Scorers, team1Score);
-            updatePlayerStats(team2Scorers, team2Score);
+    console.log(`Scorers: ${team1Name}: ${team1Scorers.join(', ')}, ${team2Name}: ${team2Scorers.join(', ')}`);
 
-            const outcome = `
-    <p><strong>${team1Name} ${team1Score} - ${team2Score} ${team2Name}</strong></p>
-    <p>Scorers for ${team1Name}: ${team1Scorers.join(', ')}</p>
-    <p>Scorers for ${team2Name}: ${team2Scorers.join(', ')}</p>
-`;
-            document.getElementById('gameOutcome').innerHTML = outcome;
+    // Update the team stats
+    team1.goalsScored += team1Score;
+    team2.goalsScored += team2Score;
+    team1.totalGoals += team1Score;
+    team2.totalGoals += team2Score;
 
-            displayTeamStats();
-            displayPlayerStats();
+    if (team1Score > team2Score) {
+        team1.wins++;
+        team2.losses++;
+    } else if (team1Score < team2Score) {
+        team2.wins++;
+        team1.losses++;
+    } else {
+        team1.draws++;
+        team2.draws++;
+    }
 
-            saveData(); // Save the updated data to localStorage
-        }
+    // Update player stats based on goals
+    updatePlayerStats(team1Scorers, team1Score);
+    updatePlayerStats(team2Scorers, team2Score);
+
+    // Prepare and display outcome
+    const outcome = `
+        <p><strong>${team1Name} ${team1Score} - ${team2Score} ${team2Name}</strong></p>
+        <p>Scorers for ${team1Name}: ${team1Scorers.join(', ')}</p>
+        <p>Scorers for ${team2Name}: ${team2Scorers.join(', ')}</p>
+    `;
+    document.getElementById('gameOutcome').innerHTML = outcome;
+
+    // Update team and player stats on screen
+    displayTeamStats();
+    displayPlayerStats();
+
+    // Save updated data to localStorage
+    saveData();
+}
 
         // Generate random goals scored based on skill (adjusted formula)
         function generateGoals(skill) {
