@@ -34,6 +34,7 @@ document.addEventListener("DOMContentLoaded", function() {
           <p>Goals: ${player.goals}</p>
           <p>Assists: ${player.assists}</p>
           <p>Penalties: ${player.penalties}</p>
+          <p>Injuries: ${player.injuries}</p> <!-- Display injuries -->
         `;
         statsContainer.appendChild(playerDiv);
       });
