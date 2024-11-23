@@ -108,18 +108,18 @@ function saveGameToHistory(gameResult) {
 // Function to update player stats in localStorage
 function updatePlayerStats(events) {
   let playerStats = JSON.parse(localStorage.getItem("playerStats")) || [
-    { name: "Alice", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-    { name: "Bob", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-    { name: "Charlie", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-    { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-    { name: "Eve", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-    { name: "Frank", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-    { name: "Grace", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-    { name: "Heidi", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-    { name: "Ivan", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-    { name: "Jack", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-    { name: "Kathy", goals: 0, assists: 0, penalties: 0, injuries: 0 },
-    { name: "Leo", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+    { name: "Alice", goals: 0, assists: 0, penalties: 0, injuries: [] },
+    { name: "Bob", goals: 0, assists: 0, penalties: 0, injuries: [] },
+    { name: "Charlie", goals: 0, assists: 0, penalties: 0, injuries: [] },
+    { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: [] },
+    { name: "Eve", goals: 0, assists: 0, penalties: 0, injuries: [] },
+    { name: "Frank", goals: 0, assists: 0, penalties: 0, injuries: [] },
+    { name: "Grace", goals: 0, assists: 0, penalties: 0, injuries: [] },
+    { name: "Heidi", goals: 0, assists: 0, penalties: 0, injuries: [] },
+    { name: "Ivan", goals: 0, assists: 0, penalties: 0, injuries: [] },
+    { name: "Jack", goals: 0, assists: 0, penalties: 0, injuries: [] },
+    { name: "Kathy", goals: 0, assists: 0, penalties: 0, injuries: [] },
+    { name: "Leo", goals: 0, assists: 0, penalties: 0, injuries: [] },
   ];
 
   // Update player stats based on the events from the simulation
