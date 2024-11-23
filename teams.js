@@ -1,8 +1,8 @@
 const teams = [
-  { name: "Team A", players: ["Player 1", "Player 2"] },
-  { name: "Team B", players: ["Player 3", "Player 4"] },
+  { name: "Team A", players: ["Alice", "Bob", "Charlie"] },
+  { name: "Team B", players: ["Dave", "Eve", "Frank"] },
   { name: "Team C", players: ["Grace", "Heidi", "Ivan"] },
-  { name: "Team D", players: ["Jack", "Kathy", "Leo"] }
+  { name: "Team D", players: ["Jack", "Kathy", "Leo"] },
 ];
 
 const teamContainer = document.getElementById("teams");
