@@ -141,8 +141,8 @@ function updatePlayerStats(events) {
 
     // Update penalties
     if (event.penalty) {
-      const playerName = event.penalty.split(' ')[0];
-      const player = playerStats.find(p => p.name === event.penalty.split(' ')[0]);
+      const playerName = event.penalty.match(/^(\w+)/)?.[1]; // Extract the first word (player name)
+      const player = playerStats.find((p) => p.name === playerName);
       if (player) player.penalties += 1;
     }
 
@@ -183,11 +183,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const penalty = simulatePenalty();
       const injury = simulateInjury();
 
-      let injuryText = "";
-  if (injury) {
-    injuryText = `${injury.player} is injured (${injury.injuryType}), missing ${injury.gamesMissed} games.`;
-  }
-
       events.push({
         team: scoringTeam.name,
         scorer: scorer.name,
@@ -221,8 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <h3>Event Summary</h3>
       <ul>
         ${events
-          .map(
-            (event) => {
+          .map((event) => {
               // Create the main text for each event
               let eventText = `${event.team}: ${event.scorer} scored (${event.assist})`;
 
@@ -233,7 +227,7 @@ document.addEventListener("DOMContentLoaded", () => {
               
               // If there is an injury, append it
           if (event.injury) {
-          const injuryDetails = `${event.injury.player} is injured (${event.injury.type}), missing ${event.injury.missedGames} games.`;
+          const injuryDetails = `${event.injury.player} is injured (${event.injury.injuryType}), missing ${event.injury.missedGames} games.`;
           eventText += ` - Injury: ${injuryDetails}`;
         }
               // Return the formatted event item
