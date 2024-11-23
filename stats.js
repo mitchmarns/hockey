@@ -45,10 +45,10 @@ document.addEventListener("DOMContentLoaded", function() {
   // Reset all player stats to default values (0)
   function resetPlayerStats() {
     const defaultPlayers = [
-      { name: "Alice", goals: 0, assists: 0, penalties: 0 },
-      { name: "Bob", goals: 0, assists: 0, penalties: 0 },
-      { name: "Charlie", goals: 0, assists: 0, penalties: 0 },
-      { name: "Dave", goals: 0, assists: 0, penalties: 0 }
+      { name: "Alice", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+      { name: "Bob", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+      { name: "Charlie", goals: 0, assists: 0, penalties: 0, injuries: 0 },
+      { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: 0 }
     ];
 
     // Save the default stats to localStorage
