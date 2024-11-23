@@ -63,19 +63,23 @@ function simulateAssist(player) {
   return chance <= player.passing;
 }
 
-// Function to simulate a penalty (randomly)
-function simulatePenalty(player) {
+// Function to simulate a penalty (randomly) for any player, not necessarily the scorer
+function simulatePenalty() {
   const chance = Math.random() * 100;
   if (chance <= 20) { // 20% chance of a penalty
+    const team = getRandomItem(teams);
+    const player = getRandomItem(team.players);
     return `${player.name} received a penalty`;
   }
   return null;
 }
 
-// Function to simulate an injury (randomly)
-function simulateInjury(player) {
+// Function to simulate an injury (randomly) for any player
+function simulateInjury() {
   const chance = Math.random() * 100;
   if (chance <= 10) { // 10% chance of injury
+    const team = getRandomItem(teams);
+    const player = getRandomItem(team.players);
     const injuryType = Math.random() > 0.5 ? 'short-term' : 'long-term';
     return `${player.name} injured: ${injuryType}`;
   }
@@ -165,8 +169,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const scoringTeam = Math.random() > 0.5 ? team1 : team2;
       const scorer = getRandomItem(scoringTeam.players);
       const assister = Math.random() > 0.5 ? getRandomItem(scoringTeam.players) : "Unassisted";
-      const penalty = simulatePenalty(scorer);
-      const injury = simulateInjury(scorer);
+      const penalty = simulatePenalty();
+      const injury = simulateInjury();
 
       events.push({
         team: scoringTeam.name,
