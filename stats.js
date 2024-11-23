@@ -1,4 +1,4 @@
-// stats.js
+// player_stats.js
 
 // Initialize the player stats if they don't exist
 function initializePlayerStats() {
@@ -9,12 +9,13 @@ function initializePlayerStats() {
     { name: "Dave", goals: 0, assists: 0, penalties: 0 }
   ];
 
+  // Check if player stats already exist in localStorage
   if (!localStorage.getItem("playerStats")) {
     localStorage.setItem("playerStats", JSON.stringify(defaultPlayers));
   }
 }
 
-// Load player stats from localStorage
+// Load and display player stats from localStorage
 function loadPlayerStats() {
   const statsContainer = document.getElementById("stats-container");
   const playerStats = JSON.parse(localStorage.getItem("playerStats"));
@@ -34,36 +35,25 @@ function loadPlayerStats() {
   });
 }
 
-// Update the stats of a player
-function updatePlayerStats(playerName, goals, assists, penalties) {
-  const playerStats = JSON.parse(localStorage.getItem("playerStats"));
+// Reset all player stats to default values (0)
+function resetPlayerStats() {
+  const defaultPlayers = [
+    { name: "Alice", goals: 0, assists: 0, penalties: 0 },
+    { name: "Bob", goals: 0, assists: 0, penalties: 0 },
+    { name: "Charlie", goals: 0, assists: 0, penalties: 0 },
+    { name: "Dave", goals: 0, assists: 0, penalties: 0 }
+  ];
 
-  const player = playerStats.find(p => p.name === playerName);
-  if (player) {
-    player.goals += parseInt(goals);
-    player.assists += parseInt(assists);
-    player.penalties += parseInt(penalties);
+  // Save the default stats to localStorage
+  localStorage.setItem("playerStats", JSON.stringify(defaultPlayers));
 
-    // Save the updated stats to localStorage
-    localStorage.setItem("playerStats", JSON.stringify(playerStats));
-  } else {
-    console.error(`Player ${playerName} not found`);
-  }
-
-  loadPlayerStats(); // Reload stats to reflect the updates
+  // Reload the stats to show the reset stats
+  loadPlayerStats();
 }
 
-// Form submission to update player stats
-document.getElementById("update-stats-form").addEventListener("submit", (e) => {
-  e.preventDefault();
-
-  const playerName = document.getElementById("player-name").value;
-  const goals = document.getElementById("goals").value;
-  const assists = document.getElementById("assists").value;
-  const penalties = document.getElementById("penalties").value;
-
-  updatePlayerStats(playerName, goals, assists, penalties);
-  document.getElementById("update-stats-form").reset(); // Reset form after submission
+// Add event listener to the reset button
+document.getElementById("reset-stats").addEventListener("click", () => {
+  resetPlayerStats();
 });
 
 // Initialize player stats on page load and display them
