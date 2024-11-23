@@ -175,6 +175,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   simulateButton.addEventListener("click", () => {
     const [team1, team2] = pickTeams();
+    // Load or ensure `playerStats` is defined
+  if (!playerStats) {
+    playerStats = JSON.parse(localStorage.getItem("playerStats")) || [];
+  }
 
     // Update injury countdown and remove fully recovered injuries
 playerStats.forEach(player => {
