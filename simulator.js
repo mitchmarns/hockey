@@ -164,7 +164,6 @@ function updatePlayerStats(events) {
     }
   });
 
-
    // Save the updated player stats to localStorage
   localStorage.setItem("playerStats", JSON.stringify(playerStats));
 }
@@ -177,15 +176,17 @@ document.addEventListener("DOMContentLoaded", () => {
   simulateButton.addEventListener("click", () => {
     const [team1, team2] = pickTeams();
 
-    // Update injury countdown for players 
-    const playerStats = JSON.parse(localStorage.getItem("playerStats"));
-    playerStats.forEach(player => {
-      player.injuries.forEach(injury => {
-        if (injury.gamesRemaining > 0) {
-          injury.gamesRemaining -= 1;  // Decrease the remaining games for each injury
-        }
-      });
-    });
+    // Update injury countdown and remove fully recovered injuries
+playerStats.forEach(player => {
+  player.injuries = player.injuries.filter(injury => {
+    if (injury.gamesRemaining > 0) {
+      injury.gamesRemaining -= 1;
+      return true; // Keep the injury
+    }
+    return false; // Remove injury if recovered
+  });
+});
+
 
     // Save the updated player stats after injury countdown
     localStorage.setItem("playerStats", JSON.stringify(playerStats));
@@ -201,10 +202,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const penalty = simulatePenalty();
       const injury = simulateInjury();
 
-      // Ensure injured players don't participate in events
-      if (playerStats.some(p => p.name === scorer.name && p.injuries.some(i => i.gamesRemaining > 0))) {
-        continue;  // Skip if the player is injured
-      }
+      // Ensure neither scorer nor assister are injured
+if (
+  playerStats.some(p => p.name === scorer.name && p.injuries.some(i => i.gamesRemaining > 0)) ||
+  (assister !== "Unassisted" && playerStats.some(p => p.name === assister.name && p.injuries.some(i => i.gamesRemaining > 0)))
+) {
+  continue;  // Skip if the player is injured
+}
 
       events.push({
         team: scoringTeam.name,
