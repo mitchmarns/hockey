@@ -248,37 +248,6 @@ function pickTeams() {
   return [{ team: team1, lines: team1Lines }, { team: team2, lines: team2Lines }];
 }
 
-function switchLines(teamLines, team) {
-  // Randomly pick a line to change
-  const randomLineIndex = Math.floor(Math.random() * teamLines.forwardLines.length);
-  const lineToChange = teamLines.forwardLines[randomLineIndex];
-
-  // Randomly swap players in the line
-  const randomPlayerIndex = Math.floor(Math.random() * lineToChange.length);
-  const swappedPlayer = lineToChange[randomPlayerIndex];
-
-  // Exclude current line players from the available swap pool
-  const availablePlayers = team.players.filter(
-    player => !lineToChange.includes(player.name)
-  );
-  console.log(availablePlayers);
-
-  // Check if availablePlayers is a valid array
-    if (!Array.isArray(availablePlayers) || availablePlayers.length === 0) {
-        console.error("Error: No available players to swap.");
-        return;
-    }
-
-  // Randomly select a new player from the available pool
-  console.log("Available players:", availablePlayers);
-  const newPlayer = getRandomItem(availablePlayers);
-
-  // Perform the swap
-  lineToChange[randomPlayerIndex] = newPlayer.name;
-
-  console.log(`Switched ${swappedPlayer} with ${newPlayer.name}`);
-}
-
 // Display lines for each team on the page
 function displayLines(teamLines) {
   const linesDiv = document.getElementById("lines");
