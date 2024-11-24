@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", function() {
   { name: "Taylor Abbott", goals: 0, assists: 0, penalties: 0, injuries: [] },
   { name: "Wolfgang Muller", goals: 0, assists: 0, penalties: 0, injuries: [] },
 ];
-    ];
+    
 
     // Save the default stats to localStorage
     localStorage.setItem("playerStats", JSON.stringify(defaultPlayers));
