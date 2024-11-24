@@ -261,9 +261,17 @@ function switchLines(teamLines, team) {
   const availablePlayers = team.players.filter(
     player => !lineToChange.includes(player.name)
   );
+  console.log(availablePlayers);
+
+  // Check if availablePlayers is a valid array
+    if (!Array.isArray(availablePlayers) || availablePlayers.length === 0) {
+        console.error("Error: No available players to swap.");
+        return;
+    }
 
   // Randomly select a new player from the available pool
-  const newSwapPlayer = getRandomItem(availablePlayers);
+  console.log("Available players:", availablePlayers);
+  const newPlayer = getRandomItem(availablePlayers);
 
   // Perform the swap
   lineToChange[randomPlayerIndex] = newPlayer.name;
