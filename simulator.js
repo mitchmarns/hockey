@@ -460,7 +460,7 @@ playerStats.forEach(player => {
     localStorage.setItem("playerStats", JSON.stringify(playerStats));
 
     const [team1, team2] = pickTeams();
-    console.log(team1, team2);
+    
     const team1Score = Math.floor(Math.random() * 5);
     const team2Score = Math.floor(Math.random() * 5);
 
