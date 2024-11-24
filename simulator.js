@@ -258,12 +258,12 @@ function switchLines(teamLines, team) {
   const swappedPlayer = lineToChange[randomPlayerIndex];
 
   // Exclude current line players from the available swap pool
-  const availablePlayersPool = team.players.filter(
+  const availablePlayers = team.players.filter(
     player => !lineToChange.includes(player.name)
   );
 
   // Randomly select a new player from the available pool
-  const newSwapPlayer = getRandomItem(availablePlayersPool);
+  const newSwapPlayer = getRandomItem(availablePlayers);
 
   // Perform the swap
   lineToChange[randomPlayerIndex] = newPlayer.name;
