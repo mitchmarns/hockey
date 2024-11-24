@@ -261,7 +261,6 @@ function switchLines(teamLines, team) {
   const availablePlayers = team.players.filter(
     player => !lineToChange.includes(player.name)
   );
-  const newPlayer = getRandomItem(availablePlayers);
 
   // Randomly select a new player from the available pool
   const newPlayer = getRandomItem(availablePlayers);
