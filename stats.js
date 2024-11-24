@@ -40,6 +40,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Check if stats are present and valid
     if (playerStats && Array.isArray(playerStats) && playerStats.length > 0) {
     playerStats.forEach(player => {
+      console.log(player);
       const playerDiv = document.createElement("div");
       playerDiv.classList.add("player-stats");
         
