@@ -263,11 +263,12 @@ function switchLines(teamLines, team) {
   );
   const newPlayer = getRandomItem(availablePlayers);
 
-  // Example: Swap a player with someone else on the team
-  const availablePlayers = teamLines.players.filter(player => player.name !== swappedPlayer);
+  // Randomly select a new player from the available pool
   const newPlayer = getRandomItem(availablePlayers);
 
+  // Perform the swap
   lineToChange[randomPlayerIndex] = newPlayer.name;
+
   console.log(`Switched ${swappedPlayer} with ${newPlayer.name}`);
 }
 
