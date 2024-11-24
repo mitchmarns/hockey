@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         
         playerDiv.innerHTML = `
-          <h3>${player.name}</h3>
+          <h3>${player.name} (${player.position})</h3>
           <p>Goals: ${player.goals}</p>
           <p>Assists: ${player.assists}</p>
           <p>Penalties: ${player.penalties}</p>
