@@ -15,12 +15,12 @@ const teams = [
       { name: "Elias Nilsson", shooting: 90, passing: 92, defense: 80, position: "Right Wing" },
       { name: "RRW3", shooting: 90, passing: 92, defense: 80, position: "Right Wing" },
       { name: "RRW4", shooting: 90, passing: 92, defense: 80, position: "Right Wing" },
-      { name: "Aiden Belanger", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "RD1B", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "RD2A", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "RD2B", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "RD3A", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "RD3B", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
+      { name: "Aiden Belanger", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "RD1B", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "RD2A", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "RD2B", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "RD3A", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "RD3B", shooting: 77, passing: 81, defense: 76, position: "Defense" },
       { name: "Bear Cohen", shooting: 10, passing: 85, defense: 95, position: "Goalie" },
     ]
   },
@@ -39,12 +39,12 @@ const teams = [
       { name: "Liam Floch", shooting: 89, passing: 90, defense: 80, position: "Right Wing" },
       { name: "Wolfgang Muller", shooting: 89, passing: 88, defense: 80, position: "Right Wing" },
       { name: "DRW4", shooting: 89, passing: 94, defense: 77, position: "Right Wing" },
-      { name: "Asher Wilde", shooting: 87, passing: 90, defense: 79, position: "Defenseman" },
-      { name: "Jasper Love", shooting: 88, passing: 96, defense: 83, position: "Defenseman" },
-      { name: "DD2A", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "DD2B", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "DD3A", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "DD3B", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
+      { name: "Asher Wilde", shooting: 87, passing: 90, defense: 79, position: "Defense" },
+      { name: "Jasper Love", shooting: 88, passing: 96, defense: 83, position: "Defense" },
+      { name: "DD2A", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "DD2B", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "DD3A", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "DD3B", shooting: 77, passing: 81, defense: 76, position: "Defense" },
       { name: "DG", shooting: 10, passing: 85, defense: 95, position: "Goalie" },
     ]
   },
@@ -63,12 +63,12 @@ const teams = [
       { name: "IRW2", shooting: 89, passing: 94, defense: 77, position: "Right Wing" },
       { name: "IRW3", shooting: 89, passing: 94, defense: 77, position: "Right Wing" },
       { name: "IRW4", shooting: 89, passing: 94, defense: 77, position: "Right Wing" },
-      { name: "ID1A", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "ID1B", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "ID2A", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "ID2B", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "ID3A", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "ID3B", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
+      { name: "ID1A", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "ID1B", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "ID2A", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "ID2B", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "ID3A", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "ID3B", shooting: 77, passing: 81, defense: 76, position: "Defense" },
       { name: "Cruz Cohen", shooting: 10, passing: 85, defense: 95, position: "Goalie" },
     ]
   },
@@ -87,12 +87,12 @@ const teams = [
       { name: "SRW2", shooting: 89, passing: 94, defense: 77, position: "Right Wing" },
       { name: "SRW3", shooting: 89, passing: 94, defense: 77, position: "Right Wing" },
       { name: "SRW4", shooting: 89, passing: 94, defense: 77, position: "Right Wing" },
-      { name: "SD1A", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "SD1B", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "SD2A", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "SD2B", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "SD3A", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
-      { name: "SD3B", shooting: 77, passing: 81, defense: 76, position: "Defenseman" },
+      { name: "SD1A", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "SD1B", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "SD2A", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "SD2B", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "SD3A", shooting: 77, passing: 81, defense: 76, position: "Defense" },
+      { name: "SD3B", shooting: 77, passing: 81, defense: 76, position: "Defense" },
       { name: "SG", shooting: 10, passing: 85, defense: 95, position: "Goalie" },
     ]
   }
@@ -109,30 +109,30 @@ function validateHockeyLineup(team) {
     positionCounts["Center"] === 4 &&
     positionCounts["Left Wing"] >= 4 &&
     positionCounts["Right Wing"] >= 4 &&
-    positionCounts["Defenseman"] >= 6 &&
+    positionCounts["Defense"] >= 6 &&
     positionCounts["Goalie"] === 1
   );
 }
 
 // Global variable for player stats
 let playerStats = JSON.parse(localStorage.getItem("playerStats")) || [
-  { name: "Aiden Belanger", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Aleksandr Petrov", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Asher Wilde", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Bear Cohen", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Chase Love", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Cruz Cohen", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Declan Thorne", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Elias Nilsson", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Hunter Owens", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Jasper Love", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Jayden Anderson", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Justin Thompson", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Liam Floch", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Mathis Christen", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Oliver Cloutier", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Taylor Abbott", goals: 0, assists: 0, penalties: 0, injuries: [] },
-  { name: "Wolfgang Muller", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Aiden Belanger", position: "Defense", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Aleksandr Petrov", position: "Right Wing", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Asher Wilde", position: "Defense", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Bear Cohen", position: "Goalie", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Chase Love", position: "Center", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Cruz Cohen", position: "Goalie", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Declan Thorne", position: "Right Wing", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Elias Nilsson", position: "Right Wing", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Hunter Owens", position: "Center", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Jasper Love", position: "Defense", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Jayden Anderson", position: "Right Wing", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Justin Thompson", position: "Center", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Liam Floch", position: "Right Wing", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Mathis Christen", position: "Left Wing", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Oliver Cloutier", position: "Center", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Taylor Abbott", position: "Left Wing", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Wolfgang Muller", position: "Right Wing", goals: 0, assists: 0, penalties: 0, injuries: [] },
 ];
 
 // Function to randomly select an item from an array
@@ -160,7 +160,7 @@ function simulateShooting(player) {
     case "Left Wing":
     case "Right Wing":
       return baseChance <= player.shooting + 10; // Boost for forwards
-    case "Defenseman":
+    case "Defense":
       return baseChance <= player.shooting - 10; // Reduced chance for defensemen
     case "Goalie":
       return false; // Goalies don't shoot
@@ -173,14 +173,14 @@ function simulateShooting(player) {
 function simulateAssist(player) {
   const baseChance = Math.random() * 100;
   if (player.position === "Center") return baseChance <= player.passing + 15; // Bonus for Centers
-  if (player.position === "Defenseman") return baseChance <= player.passing - 5; // Reduced for Defensemen
+  if (player.position === "Defense") return baseChance <= player.passing - 5; // Reduced for Defensemen
   return baseChance <= player.passing;
 }
 
 //defence
 function adjustDefense(team) {
   return team.players
-    .filter(player => player.position === "Defenseman")
+    .filter(player => player.position === "Defense")
     .reduce((totalDefense, player) => totalDefense + player.defense, 0);
 }
 
@@ -208,7 +208,7 @@ function simulateInjury() {
     const player = getRandomItem(team.players);
 
     let injuryType;
-    if (player.position === "Defenseman") {
+    if (player.position === "Defense") {
       injuryType = "long-term"; // Defensemen more likely to get long-term injuries
     } else if (player.position === "Goalie") {
       injuryType = Math.random() > 0.8 ? "long-term" : "short-term"; // Rare but significant
