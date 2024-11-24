@@ -4,19 +4,24 @@ document.addEventListener("DOMContentLoaded", function() {
   // Initialize the player stats if they don't exist
   function initializePlayerStats() {
     const defaultPlayers = [
-      { name: "Alice", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Bob", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Charlie", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Eve", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Frank", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Grace", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Heidi", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Ivan", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Jack", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Kathy", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Leo", goals: 0, assists: 0, penalties: 0, injuries: [] }
-    ];
+  { name: "Aiden Belanger", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Aleksandr Petrov", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Asher Wilde", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Bear Cohen", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Chase Love", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Cruz Cohen", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Declan Thorne", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Elias Nilsson", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Hunter Owens", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Jasper Love", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Jayden Anderson", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Justin Thompson", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Liam Floch", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Mathis Christen", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Oliver Cloutier", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Taylor Abbott", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Wolfgang Muller", goals: 0, assists: 0, penalties: 0, injuries: [] },
+];
 
     // Check if player stats already exist in localStorage
     if (!localStorage.getItem("playerStats")) {
@@ -64,18 +69,24 @@ document.addEventListener("DOMContentLoaded", function() {
   // Reset all player stats to default values (0)
   function resetPlayerStats() {
     const defaultPlayers = [
-      { name: "Alice", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Bob", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Charlie", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Dave", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Eve", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Frank", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Grace", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Heidi", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Ivan", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Jack", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Kathy", goals: 0, assists: 0, penalties: 0, injuries: [] },
-      { name: "Leo", goals: 0, assists: 0, penalties: 0, injuries: [] }
+  { name: "Aiden Belanger", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Aleksandr Petrov", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Asher Wilde", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Bear Cohen", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Chase Love", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Cruz Cohen", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Declan Thorne", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Elias Nilsson", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Hunter Owens", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Jasper Love", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Jayden Anderson", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Justin Thompson", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Liam Floch", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Mathis Christen", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Oliver Cloutier", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Taylor Abbott", goals: 0, assists: 0, penalties: 0, injuries: [] },
+  { name: "Wolfgang Muller", goals: 0, assists: 0, penalties: 0, injuries: [] },
+];
     ];
 
     // Save the default stats to localStorage
