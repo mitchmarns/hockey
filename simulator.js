@@ -114,6 +114,75 @@ function validateHockeyLineup(team) {
   );
 }
 
+const teamLines = [
+  {
+    name:"Rangers",
+    lines: {
+        forwardLines: [
+            //forward lines (left wing, center, right wing)
+            ["Hunter Owens", "RLW1", "Declan Thorne"], // Line 1: Center, Left Wing, Right Wing
+            ["Justin Thompson", "RLW2", "Elias Nilsson"], // Line 2
+            ["RC3", "RLW3", "RRW3"], // Line 3
+            ["RC4", "RLW4", "RRW4"], // Line 4
+          ],
+        defensivePairings: [
+            // Defensive pairings (2 defensemen per pair)
+            ["Aiden Belanger", "RD1B"], // Pair 1
+            ["RD2A", "RD2B"], // Pair 2
+            ["RD3A", "RD3B"], // Pair 3
+          ]
+      }
+  },
+  {
+    name: "Devils",
+    lines: {
+      forwardLines: [
+        ["Chase Love", "Mathis Christen", "Jayden Anderson"], // Line 1
+        ["DC2", "DLW3", "Liam Floch"], // Line 2
+        ["DC3", "DLW4", "Wolfgang Muller"], // Line 3
+        ["DC4", "DLW4", "DRW4"], // Line 4
+      ],
+      defensivePairings: [
+        ["Asher Wilde", "Jasper Love"], // Pair 1
+        ["DD2A", "DD2B"], // Pair 2
+        ["DD3A", "DD3B"], // Pair 3
+      ]
+    }
+  },
+  {
+    name: "Islanders",
+    lines: {
+      forwardLines: [
+        ["Oliver Cloutier", "Aleksandr Petrov", "ILW1"], // Line 1
+        ["IC2", "ILW3", "IRW2"], // Line 2
+        ["IC3", "ILW2", "IRW3"], // Line 3
+        ["IC4", "ILW4", "IRW4"], // Line 4
+      ],
+      defensivePairings: [
+        ["ID1A", "ID2A"], // Pair 1
+        ["ID2A", "ID2B"], // Pair 2
+        ["ID3A", "ID3B"], // Pair 3
+      ]
+    }
+  },
+  {
+    name: "Sabres",
+    lines: {
+      forwardLines: [
+        ["SC1", "SLW1", "SRW1"], // Line 1
+        ["SC2", "SLW3", "SRW2"], // Line 2
+        ["SC3", "SLW2", "SRW3"], // Line 3
+        ["SC4", "SLW4", "SRW4"], // Line 4
+      ],
+      defensivePairings: [
+        ["SD1A", "SD1B"], // Pair 1
+        ["SD2A", "SD2B"], // Pair 2
+        ["SD3A", "SD3B"], // Pair 3
+      ]
+    }
+  },
+];
+
 // Global variable for player stats
 let playerStats = JSON.parse(localStorage.getItem("playerStats")) || [
   { name: "Aiden Belanger", position: "Defense", goals: 0, assists: 0, penalties: 0, injuries: [] },
@@ -148,8 +217,62 @@ function pickTeams() {
     team2Index = Math.floor(Math.random() * teams.length);
   } while (team1Index === team2Index);
 
-  console.log("Teams picked:", teams[team1Index].name, "vs", teams[team2Index].name); // Debugging message
-  return [teams[team1Index], teams[team2Index]];
+  const team1 = teams[team1Index];
+  const team2 = teams[team2Index];
+
+  // Assign lines based on teamLines structure
+  const team1Lines = teamLines.find(t => t.name === team1.name)?.lines;
+  const team2Lines = teamLines.find(t => t.name === team2.name)?.lines;
+
+  console.log("Teams picked:", team1.name, "vs", team2.name);
+  console.log("Team 1 Lines:", team1Lines);
+  console.log("Team 2 Lines:", team2Lines);
+
+  return { team1, team2, team1Lines, team2Lines };
+}
+
+function switchLines(teamLines) {
+  // Randomly pick a line to change
+  const randomLineIndex = Math.floor(Math.random() * teamLines.forwardLines.length);
+  const lineToChange = teamLines.forwardLines[randomLineIndex];
+
+  // Randomly swap players in the line
+  const randomPlayerIndex = Math.floor(Math.random() * lineToChange.length);
+  const swappedPlayer = lineToChange[randomPlayerIndex];
+
+  // Example: Swap a player with someone else on the team
+  const availablePlayers = teamLines.players.filter(player => player.name !== swappedPlayer);
+  const newPlayer = getRandomItem(availablePlayers);
+
+  lineToChange[randomPlayerIndex] = newPlayer.name;
+  console.log(`Switched ${swappedPlayer} with ${newPlayer.name}`);
+}
+
+// Display lines for each team on the page
+function displayLines(teamLines) {
+  const linesDiv = document.getElementById("lines");
+  linesDiv.innerHTML = ""; // Clear previous lines
+
+  teamLines.forEach(team => {
+    const teamDiv = document.createElement("div");
+    teamDiv.innerHTML = `<h3>${team.name} Lines:</h3>`;
+    
+    const forwardLinesDiv = document.createElement("div");
+    forwardLinesDiv.innerHTML = "<h4>Forward Lines:</h4>";
+    team.lines.forwardLines.forEach((line, index) => {
+      forwardLinesDiv.innerHTML += `<p>Line ${index + 1}: ${line.join(", ")}</p>`;
+    });
+
+    const defenseDiv = document.createElement("div");
+    defenseDiv.innerHTML = "<h4>Defense Pairings:</h4>";
+    team.lines.defensivePairings.forEach((pair, index) => {
+      defenseDiv.innerHTML += `<p>Pair ${index + 1}: ${pair.join(", ")}</p>`;
+    });
+
+    teamDiv.appendChild(forwardLinesDiv);
+    teamDiv.appendChild(defenseDiv);
+    linesDiv.appendChild(teamDiv);
+  });
 }
 
 // Function to simulate a player's chance of scoring based on their shooting skill
