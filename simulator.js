@@ -228,7 +228,7 @@ function pickTeams() {
   console.log("Team 1 Lines:", team1Lines);
   console.log("Team 2 Lines:", team2Lines);
 
-  return { team1, team2, team1Lines, team2Lines };
+  return [{ team: team1, lines: team1Lines }, { team: team2, lines: team2Lines }];
 }
 
 function switchLines(teamLines) {
@@ -253,7 +253,7 @@ function displayLines(teamLines) {
   const linesDiv = document.getElementById("lines");
   linesDiv.innerHTML = ""; // Clear previous lines
 
-  teamLines.forEach(team => {
+  teamLines.forEach(({ team, lines }) => {
     const teamDiv = document.createElement("div");
     teamDiv.innerHTML = `<h3>${team.name} Lines:</h3>`;
     
