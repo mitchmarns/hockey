@@ -114,75 +114,6 @@ function validateHockeyLineup(team) {
   );
 }
 
-const teamLines = [
-  {
-    name:"Rangers",
-    lines: {
-        forwardLines: [
-            //forward lines (left wing, center, right wing)
-            ["Hunter Owens", "RLW1", "Declan Thorne"], // Line 1: Center, Left Wing, Right Wing
-            ["Justin Thompson", "RLW2", "Elias Nilsson"], // Line 2
-            ["RC3", "RLW3", "RRW3"], // Line 3
-            ["RC4", "RLW4", "RRW4"], // Line 4
-          ],
-        defensivePairings: [
-            // Defensive pairings (2 defensemen per pair)
-            ["Aiden Belanger", "RD1B"], // Pair 1
-            ["RD2A", "RD2B"], // Pair 2
-            ["RD3A", "RD3B"], // Pair 3
-          ]
-      }
-  },
-  {
-    name: "Devils",
-    lines: {
-      forwardLines: [
-        ["Chase Love", "Mathis Christen", "Jayden Anderson"], // Line 1
-        ["DC2", "DLW3", "Liam Floch"], // Line 2
-        ["DC3", "DLW4", "Wolfgang Muller"], // Line 3
-        ["DC4", "DLW4", "DRW4"], // Line 4
-      ],
-      defensivePairings: [
-        ["Asher Wilde", "Jasper Love"], // Pair 1
-        ["DD2A", "DD2B"], // Pair 2
-        ["DD3A", "DD3B"], // Pair 3
-      ]
-    }
-  },
-  {
-    name: "Islanders",
-    lines: {
-      forwardLines: [
-        ["Oliver Cloutier", "Aleksandr Petrov", "ILW1"], // Line 1
-        ["IC2", "ILW3", "IRW2"], // Line 2
-        ["IC3", "ILW2", "IRW3"], // Line 3
-        ["IC4", "ILW4", "IRW4"], // Line 4
-      ],
-      defensivePairings: [
-        ["ID1A", "ID2A"], // Pair 1
-        ["ID2A", "ID2B"], // Pair 2
-        ["ID3A", "ID3B"], // Pair 3
-      ]
-    }
-  },
-  {
-    name: "Sabres",
-    lines: {
-      forwardLines: [
-        ["SC1", "SLW1", "SRW1"], // Line 1
-        ["SC2", "SLW3", "SRW2"], // Line 2
-        ["SC3", "SLW2", "SRW3"], // Line 3
-        ["SC4", "SLW4", "SRW4"], // Line 4
-      ],
-      defensivePairings: [
-        ["SD1A", "SD1B"], // Pair 1
-        ["SD2A", "SD2B"], // Pair 2
-        ["SD3A", "SD3B"], // Pair 3
-      ]
-    }
-  },
-];
-
 // Global variable for player stats
 let playerStats = JSON.parse(localStorage.getItem("playerStats")) || [
   { name: "Aiden Belanger", position: "Defense", goals: 0, assists: 0, penalties: 0, injuries: [] },
@@ -209,16 +140,6 @@ function getRandomItem(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
-// Validate lines
-function validateLineup(team, lines) {
-  const teamPlayers = team.players.map(player => player.name);
-  const allLinePlayers = [
-    ...lines.forwardLines.flat(),
-    ...lines.defensivePairings.flat()
-  ];
-
-  return allLinePlayers.every(playerName => teamPlayers.includes(playerName));
-}
 // Function to randomly pick two teams for the game
 function pickTeams() {
   const team1Index = Math.floor(Math.random() * teams.length);
@@ -227,52 +148,8 @@ function pickTeams() {
     team2Index = Math.floor(Math.random() * teams.length);
   } while (team1Index === team2Index);
 
-  const team1 = teams[team1Index];
-  const team2 = teams[team2Index];
-
-  // Assign lines based on teamLines structure
-  const team1Lines = teamLines.find(t => t.name === team1.name)?.lines;
-  const team2Lines = teamLines.find(t => t.name === team2.name)?.lines;
-
-  if (!validateLineup(team1, team1Lines)) {
-    console.error(`Invalid lineup for ${team1.name}`);
-  }
-  if (!validateLineup(team2, team2Lines)) {
-    console.error(`Invalid lineup for ${team2.name}`);
-  }
-
-  console.log("Teams picked:", team1.name, "vs", team2.name);
-  console.log("Team 1 Lines:", team1Lines);
-  console.log("Team 2 Lines:", team2Lines);
-
-  return [{ team: team1, lines: team1Lines }, { team: team2, lines: team2Lines }];
-}
-
-// Display lines for each team on the page
-function displayLines(teamLines) {
-  const linesDiv = document.getElementById("lines");
-  linesDiv.innerHTML = ""; // Clear previous lines
-
-  teamLines.forEach(({ team, lines }) => {
-    const teamDiv = document.createElement("div");
-    teamDiv.innerHTML = `<h3>${team.name} Lines:</h3>`;
-    
-    const forwardLinesDiv = document.createElement("div");
-    forwardLinesDiv.innerHTML = "<h4>Forward Lines:</h4>";
-    team.lines.forwardLines.forEach((line, index) => {
-      forwardLinesDiv.innerHTML += `<p>Line ${index + 1}: ${line.join(", ")}</p>`;
-    });
-
-    const defenseDiv = document.createElement("div");
-    defenseDiv.innerHTML = "<h4>Defense Pairings:</h4>";
-    team.lines.defensivePairings.forEach((pair, index) => {
-      defenseDiv.innerHTML += `<p>Pair ${index + 1}: ${pair.join(", ")}</p>`;
-    });
-
-    teamDiv.appendChild(forwardLinesDiv);
-    teamDiv.appendChild(defenseDiv);
-    linesDiv.appendChild(teamDiv);
-  });
+  console.log("Teams picked:", teams[team1Index].name, "vs", teams[team2Index].name); // Debugging message
+  return [teams[team1Index], teams[team2Index]];
 }
 
 // Function to simulate a player's chance of scoring based on their shooting skill
@@ -301,18 +178,10 @@ function simulateAssist(player) {
 }
 
 //defence
-function adjustDefense(defensePair, opposingForwards) {
-  const totalDefenseSkill = defensePair.reduce((total, playerName) => {
-    const player = playerStats.find(p => p.name === playerName);
-    return total + (player ? player.defense : 0);
-  }, 0);
-
-  const totalOpponentSkill = opposingForwards.reduce((total, playerName) => {
-    const player = playerStats.find(p => p.name === playerName);
-    return total + (player ? player.shooting : 0);
-  }, 0);
-
-  return totalDefenseSkill >= totalOpponentSkill; // Boolean: Defense success or not
+function adjustDefense(team) {
+  return team.players
+    .filter(player => player.position === "Defense")
+    .reduce((totalDefense, player) => totalDefense + player.defense, 0);
 }
 
 function goalieSave(goalie) {
@@ -424,35 +293,6 @@ function updatePlayerStats(events) {
       }
     }
 
-    function updatePlayerStats(playerName, statKey, value) {
-  const player = playerStats.find(p => p.name === playerName);
-  if (player) {
-    player[statKey] = (player[statKey] || 0) + value;
-  } else {
-    console.error(`Player ${playerName} not found in stats`);
-  }
-  localStorage.setItem("playerStats", JSON.stringify(playerStats));
-}
-
-function initializePlayerStats(team) {
-  team.players.forEach(player => {
-    if (!playerStats.some(p => p.name === player.name)) {
-      playerStats.push({
-        name: player.name,
-        position: player.position,
-        goals: 0,
-        assists: 0,
-        penalties: 0,
-        injuries: []
-      });
-    }
-  });
-  localStorage.setItem("playerStats", JSON.stringify(playerStats));
-}
-
-// Call initializePlayerStats for each team at the start
-teams.forEach(initializePlayerStats);
-
     // Update penalties
     if (event.penalty) {
       const playerName = event.penalty.match(/^(\w+)/)?.[1]; // Extract the first word (player name)
@@ -497,7 +337,6 @@ playerStats.forEach(player => {
     localStorage.setItem("playerStats", JSON.stringify(playerStats));
 
     const [team1, team2] = pickTeams();
-    
     const team1Score = Math.floor(Math.random() * 5);
     const team2Score = Math.floor(Math.random() * 5);
 
