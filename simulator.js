@@ -209,6 +209,16 @@ function getRandomItem(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
+// Validate lines
+function validateLineup(team, lines) {
+  const teamPlayers = team.players.map(player => player.name);
+  const allLinePlayers = [
+    ...lines.forwardLines.flat(),
+    ...lines.defensivePairings.flat()
+  ];
+
+  return allLinePlayers.every(playerName => teamPlayers.includes(playerName));
+}
 // Function to randomly pick two teams for the game
 function pickTeams() {
   const team1Index = Math.floor(Math.random() * teams.length);
@@ -224,6 +234,13 @@ function pickTeams() {
   const team1Lines = teamLines.find(t => t.name === team1.name)?.lines;
   const team2Lines = teamLines.find(t => t.name === team2.name)?.lines;
 
+  if (!validateLineup(team1, team1Lines)) {
+    console.error(`Invalid lineup for ${team1.name}`);
+  }
+  if (!validateLineup(team2, team2Lines)) {
+    console.error(`Invalid lineup for ${team2.name}`);
+  }
+
   console.log("Teams picked:", team1.name, "vs", team2.name);
   console.log("Team 1 Lines:", team1Lines);
   console.log("Team 2 Lines:", team2Lines);
@@ -231,7 +248,7 @@ function pickTeams() {
   return [{ team: team1, lines: team1Lines }, { team: team2, lines: team2Lines }];
 }
 
-function switchLines(teamLines) {
+function switchLines(teamLines, team) {
   // Randomly pick a line to change
   const randomLineIndex = Math.floor(Math.random() * teamLines.forwardLines.length);
   const lineToChange = teamLines.forwardLines[randomLineIndex];
@@ -239,6 +256,12 @@ function switchLines(teamLines) {
   // Randomly swap players in the line
   const randomPlayerIndex = Math.floor(Math.random() * lineToChange.length);
   const swappedPlayer = lineToChange[randomPlayerIndex];
+
+  // Exclude current line players from the available swap pool
+  const availablePlayers = team.players.filter(
+    player => !lineToChange.includes(player.name)
+  );
+  const newPlayer = getRandomItem(availablePlayers);
 
   // Example: Swap a player with someone else on the team
   const availablePlayers = teamLines.players.filter(player => player.name !== swappedPlayer);
@@ -301,10 +324,18 @@ function simulateAssist(player) {
 }
 
 //defence
-function adjustDefense(team) {
-  return team.players
-    .filter(player => player.position === "Defense")
-    .reduce((totalDefense, player) => totalDefense + player.defense, 0);
+function adjustDefense(defensePair, opposingForwards) {
+  const totalDefenseSkill = defensePair.reduce((total, playerName) => {
+    const player = playerStats.find(p => p.name === playerName);
+    return total + (player ? player.defense : 0);
+  }, 0);
+
+  const totalOpponentSkill = opposingForwards.reduce((total, playerName) => {
+    const player = playerStats.find(p => p.name === playerName);
+    return total + (player ? player.shooting : 0);
+  }, 0);
+
+  return totalDefenseSkill >= totalOpponentSkill; // Boolean: Defense success or not
 }
 
 function goalieSave(goalie) {
@@ -415,6 +446,35 @@ function updatePlayerStats(events) {
         }
       }
     }
+
+    function updatePlayerStats(playerName, statKey, value) {
+  const player = playerStats.find(p => p.name === playerName);
+  if (player) {
+    player[statKey] = (player[statKey] || 0) + value;
+  } else {
+    console.error(`Player ${playerName} not found in stats`);
+  }
+  localStorage.setItem("playerStats", JSON.stringify(playerStats));
+}
+
+function initializePlayerStats(team) {
+  team.players.forEach(player => {
+    if (!playerStats.some(p => p.name === player.name)) {
+      playerStats.push({
+        name: player.name,
+        position: player.position,
+        goals: 0,
+        assists: 0,
+        penalties: 0,
+        injuries: []
+      });
+    }
+  });
+  localStorage.setItem("playerStats", JSON.stringify(playerStats));
+}
+
+// Call initializePlayerStats for each team at the start
+teams.forEach(initializePlayerStats);
 
     // Update penalties
     if (event.penalty) {
