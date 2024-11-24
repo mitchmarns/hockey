@@ -40,7 +40,6 @@ document.addEventListener("DOMContentLoaded", function() {
     // Check if stats are present and valid
     if (playerStats && Array.isArray(playerStats) && playerStats.length > 0) {
     playerStats.forEach(player => {
-      console.log(player);
       const playerDiv = document.createElement("div");
       playerDiv.classList.add("player-stats");
         
@@ -52,6 +51,9 @@ document.addEventListener("DOMContentLoaded", function() {
             injuryStatus = `Yes (${activeInjuries[0].gamesRemaining} games left)`; // Show games remaining for the first active injury
           }
         }
+
+      // Debugging log
+      console.log(player);
         
         playerDiv.innerHTML = `
           <h3>${player.name} (${player.position})</h3>
