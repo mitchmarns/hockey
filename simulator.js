@@ -203,29 +203,53 @@ function simulatePenalty() {
 // Function to simulate an injury 
 function simulateInjury() {
   const chance = Math.random() * 100;
-  if (chance <= 10) { // 10% chance of injury
+
+  // Higher chance if the player is frequently penalized or performing poorly
+  const randomModifier = Math.random() > 0.5 ? 10 : -10; // Random bump for better or worse chance
+
+  const injuryChance = chance + randomModifier;
+  
+  if (injuryChance <= 15) { // 15% chance of injury, but influenced by performance
     const team = getRandomItem(teams);
     const player = getRandomItem(team.players);
 
     let injuryType;
     if (player.position === "Defense") {
-      injuryType = "long-term"; // Defensemen more likely to get long-term injuries
+      injuryType = Math.random() > 0.5 ? "long-term" : "short-term"; // 50/50 chance for defense
     } else if (player.position === "Goalie") {
-      injuryType = Math.random() > 0.8 ? "long-term" : "short-term"; // Rare but significant
+      injuryType = Math.random() > 0.7 ? "long-term" : "short-term"; // Goalies more likely for long-term injuries
     } else {
-      injuryType = Math.random() > 0.5 ? "short-term" : "long-term"; // Forwards have balanced chances
+      injuryType = Math.random() > 0.6 ? "short-term" : "long-term"; // Forwards more balanced
     }
 
     const gamesMissed =
       injuryType === "short-term"
-        ? Math.floor(Math.random() * 3) + 1
-        : Math.floor(Math.random() * 6) + 5;
+        ? Math.floor(Math.random() * 4) + 2  // 2-5 games for short-term injuries
+        : Math.floor(Math.random() * 7) + 5; // 5-11 games for long-term injuries
 
     return { player: player.name, position: player.position, injuryType, gamesMissed };
   }
   return null;
 }
 
+// Function to update injury cooldown for players
+function updateInjuryCooldown() {
+  playerStats.forEach(player => {
+    if (player.injuries.length > 0) {
+      player.injuries.forEach(injury => {
+        if (injury.gamesRemaining > 0) {
+          injury.gamesRemaining -= 1; // Reduce cooldown
+        }
+      });
+
+      // Remove fully healed injuries
+      player.injuries = player.injuries.filter(injury => injury.gamesRemaining > 0);
+    }
+  });
+
+  // Save updated player stats
+  localStorage.setItem("playerStats", JSON.stringify(playerStats));
+}
 
 
 // Function to load existing game history from localStorage
