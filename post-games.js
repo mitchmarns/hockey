@@ -28,6 +28,14 @@ function charOrReal(charName, realName) {
   return r ? r : "—";
 }
 
+function toiToSeconds(toi) {
+  // boxscore uses "MM:SS"
+  const s = (toi ?? "").toString().trim();
+  const m = s.match(/^(\d+):(\d{2})$/);
+  if (!m) return 0;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+
 async function readJson(filePath, fallback) {
   try {
     return JSON.parse(await fs.readFile(filePath, "utf8"));
@@ -91,49 +99,55 @@ function statLine(p) {
   const a = p.assists ?? 0;
   const pts = p.points ?? (g + a);
   const pim = p.pim ?? 0;
-  const s = p.shots ?? 0;
-  const h = p.hits ?? 0;
+  const sog = p.sog ?? p.shots ?? 0;   // boxscore uses sog
+  const hits = p.hits ?? 0;
   const toi = p.toi ?? "";
-  return `${g}G ${a}A ${pts}P | ${s} S | ${h} H | ${pim} PIM | TOI ${toi}`;
+  return `${g}G ${a}A ${pts}P | ${sog} SOG | ${hits} H | ${pim} PIM | TOI ${toi}`;
 }
 
+/**
+ * ✅ IMPORTANT FIX:
+ * Players are in box.playerByGameStats.[awayTeam|homeTeam],
+ * NOT under box.awayTeam.playerByGameStats...
+ */
 function extractSkatersFromBoxscore(box) {
   const out = {};
-  for (const side of ["homeTeam", "awayTeam"]) {
-    const team = box[side];
-    const abbr = team.abbrev;
+  for (const side of ["awayTeam", "homeTeam"]) {
+    const teamInfo = box[side];
+    const stats = box.playerByGameStats?.[side] || {};
 
-    const f = team.playerByGameStats?.forwards ?? [];
-    const d = team.playerByGameStats?.defense ?? [];
-    const g = team.playerByGameStats?.goalies ?? [];
-
+    const abbr = teamInfo?.abbrev || side.toUpperCase();
     out[abbr] = {
-      teamName: team.commonName?.default ?? abbr,
+      teamName: teamInfo?.commonName?.default ?? abbr,
       abbrev: abbr,
-      forwards: f,
-      defense: d,
-      goalies: g,
+      forwards: stats.forwards ?? [],
+      defense: stats.defense ?? [],
+      goalies: stats.goalies ?? [],
     };
   }
   return out;
 }
 
 function buildRealLinesTOIFallback(boxSkaters) {
-  // Uses players who actually played (boxscore), approximates lines by TOI
   const linesByTeam = {};
 
   for (const [abbr, group] of Object.entries(boxSkaters)) {
-    const forwardsAll = [...group.forwards].sort((a, b) => (b.toiSeconds ?? 0) - (a.toiSeconds ?? 0));
-    const defenseAll = [...group.defense].sort((a, b) => (b.toiSeconds ?? 0) - (a.toiSeconds ?? 0));
-    const goaliesAll = [...group.goalies].sort((a, b) => (b.toiSeconds ?? 0) - (a.toiSeconds ?? 0));
+    const forwardsAll = [...(group.forwards ?? [])].sort(
+      (a, b) => toiToSeconds(b.toi) - toiToSeconds(a.toi)
+    );
+    const defenseAll = [...(group.defense ?? [])].sort(
+      (a, b) => toiToSeconds(b.toi) - toiToSeconds(a.toi)
+    );
+    const goaliesAll = [...(group.goalies ?? [])].sort(
+      (a, b) => toiToSeconds(b.toi) - toiToSeconds(a.toi)
+    );
 
-    const getPos = (p) => (p?.positionCode ?? p?.position ?? "").toString().toUpperCase().trim();
+    const getPos = (p) => (p?.position ?? p?.positionCode ?? "").toString().toUpperCase().trim();
 
-    // Forwards: bucket if possible, but NEVER leave slots empty if players remain
-    const L = forwardsAll.filter((p) => getPos(p) === "L");
+    const L = forwardsAll.filter((p) => getPos(p) === "L" || getPos(p) === "LW");
     const C = forwardsAll.filter((p) => getPos(p) === "C");
-    const R = forwardsAll.filter((p) => getPos(p) === "R");
-    const OTHER = forwardsAll.filter((p) => !["L", "C", "R"].includes(getPos(p)));
+    const R = forwardsAll.filter((p) => getPos(p) === "R" || getPos(p) === "RW");
+    const OTHER = forwardsAll.filter((p) => !["L", "LW", "C", "R", "RW"].includes(getPos(p)));
 
     const take = (arr) => (arr.length ? arr.shift() : null);
     const takeAny = () => take(L) || take(C) || take(R) || take(OTHER) || null;
@@ -146,7 +160,6 @@ function buildRealLinesTOIFallback(boxSkaters) {
       F.push([lw, c, rw]);
     }
 
-    // Defense: boxscore doesn’t give LD/RD, so we pair by TOI order
     const D = [];
     for (let i = 0; i < 3; i++) {
       const d1 = defenseAll[i * 2] ?? null;
@@ -174,7 +187,6 @@ function renderMirroredGame({ gameId, box, rosters, realLines, boxSkaters }) {
     const teamName = boxSkaters[abbr]?.teamName ?? abbr;
     const rl = realLines[abbr];
 
-    // Your character roster (may be missing for most teams)
     const charTeam = rosters[abbr] || null;
 
     blocks.push(`\n**${teamName} — Character Mirror**`);
@@ -195,8 +207,8 @@ function renderMirroredGame({ gameId, box, rosters, realLines, boxSkaters }) {
 
       blocks.push(
         `L${i + 1}: ${charOrReal(ch.LW, lwReal)} ⇐ ${lwReal || "—"}${lw ? ` (${statLine(lw)})` : ""}\n` +
-          `    ${charOrReal(ch.C, cReal)} ⇐ ${cReal || "—"}${c ? ` (${statLine(c)})` : ""}\n` +
-          `    ${charOrReal(ch.RW, rwReal)} ⇐ ${rwReal || "—"}${rw ? ` (${statLine(rw)})` : ""}`
+        `    ${charOrReal(ch.C, cReal)} ⇐ ${cReal || "—"}${c ? ` (${statLine(c)})` : ""}\n` +
+        `    ${charOrReal(ch.RW, rwReal)} ⇐ ${rwReal || "—"}${rw ? ` (${statLine(rw)})` : ""}`
       );
     }
 
@@ -214,7 +226,7 @@ function renderMirroredGame({ gameId, box, rosters, realLines, boxSkaters }) {
 
       blocks.push(
         `D${i + 1}: ${charOrReal(ch.LD, d1Real)} ⇐ ${d1Real || "—"}${d1 ? ` (${statLine(d1)})` : ""}\n` +
-          `    ${charOrReal(ch.RD, d2Real)} ⇐ ${d2Real || "—"}${d2 ? ` (${statLine(d2)})` : ""}`
+        `    ${charOrReal(ch.RD, d2Real)} ⇐ ${d2Real || "—"}${d2 ? ` (${statLine(d2)})` : ""}`
       );
     }
 
@@ -241,7 +253,6 @@ function renderMirroredGame({ gameId, box, rosters, realLines, boxSkaters }) {
     }
   }
 
-  // Discord ~2000 char limit
   let out = blocks.join("\n");
   if (out.length > 1900) out = out.slice(0, 1900) + "\n…(truncated)";
   return out;
@@ -261,7 +272,6 @@ async function main() {
 
   const score = await nhlScore(DATE);
   const games = score.games ?? [];
-
   const candidates = FORCE_ALL ? games : games.filter(isFinalGame);
 
   console.log(
@@ -286,6 +296,12 @@ async function main() {
 
     const box = await nhlBoxscore(gameId);
     const boxSkaters = extractSkatersFromBoxscore(box);
+
+    // Debug (in logs): make sure we have players
+    for (const [abbr, grp] of Object.entries(boxSkaters)) {
+      console.log(`${gameId} ${abbr}: F=${grp.forwards.length} D=${grp.defense.length} G=${grp.goalies.length}`);
+    }
+
     const realLines = buildRealLinesTOIFallback(boxSkaters);
 
     const text = renderMirroredGame({ gameId, box, rosters, realLines, boxSkaters });
