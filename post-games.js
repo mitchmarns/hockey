@@ -114,12 +114,13 @@ function buildRealLinesTOIFallback(boxSkaters) {
     const OTHER = forwards.filter((p) => !["L", "C", "R"].includes(getPos(p)));
 
     const take = (arr) => (arr.length ? arr.shift() : null);
+    const takeAny = () => take(L) || take(C) || take(R) || take(OTHER) || null;
 
     const F = [];
     for (let i = 0; i < 4; i++) {
-      const lw = take(L) || take(OTHER) || null;
-      const c = take(C) || take(OTHER) || null;
-      const rw = take(R) || take(OTHER) || null;
+      const lw = take(L) || takeAny();
+      const c  = take(C) || takeAny();
+      const rw = take(R) || takeAny();
       F.push([lw, c, rw]);
     }
 
