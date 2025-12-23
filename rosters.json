@@ -1,5 +1,5 @@
 {
-  "LOS ANGELES KINGS": {
+  "LAK": {
     "F": [
       { "LW": "Sebastian Cormier", "C": "Bennett Pierce", "RW": "Declan Thorne" },
       { "LW": "Cooper Levan", "C": "Link Beauvais", "RW": "Evander Calloway" },
@@ -16,7 +16,7 @@
       { "G": "" }
     ]
   },
-  "SAN JOSE SHARKS": {
+  "SJS": {
     "F": [
       { "LW": "Hendrix Brooks", "C": "Mathis Christen", "RW": "Preston Thorne" },
       { "LW": "Julian Levan", "C": "Dylan Brooks", "RW": "Logan Edwards" },
@@ -33,7 +33,7 @@
       { "G": "" }
     ]
   },
-  "ANAHEIM DUCKS": {
+  "ANA": {
     "F": [
       { "LW": "Arbor Beauvais", "C": "Bo Moore", "RW": "Mika Laine" },
       { "LW": "Wren Howards", "C": "Matthias Koskinen", "RW": "Dakota Guidry" },
