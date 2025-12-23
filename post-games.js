@@ -1,4 +1,4 @@
-// post-games.js (Node 20+; CommonJS) — Forum threads + Embeds + one-name slots
+// post-games.js (Node 20+; CommonJS) — Forum threads + Embeds + bold character names + penalty details
 const fs = require("node:fs/promises");
 const path = require("node:path");
 
@@ -16,13 +16,6 @@ function isBlank(v) {
   return v === undefined || v === null || `${v}`.trim() === "";
 }
 
-function charOrReal(charName, realName) {
-  const c = (charName ?? "").toString().trim();
-  if (c) return c;
-  const r = (realName ?? "").toString().trim();
-  return r ? r : "—";
-}
-
 function pickName(charName, realName) {
   const c = (charName ?? "").toString().trim();
   if (c) return { name: c, isChar: true };
@@ -35,7 +28,7 @@ function pickName(charName, realName) {
 
 function fmtName(picked) {
   // bold ONLY character names
-  return picked.isChar ? `**${picked.name}**` : picked.name;
+  return picked.isChar && picked.name !== "—" ? `**${picked.name}**` : picked.name;
 }
 
 function toiToSeconds(toi) {
@@ -69,6 +62,13 @@ async function nhlBoxscore(gameId) {
   const url = `https://api-web.nhle.com/v1/gamecenter/${gameId}/boxscore`;
   const res = await fetch(url, { headers: { Accept: "application/json" } });
   if (!res.ok) throw new Error(`boxscore failed: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+async function nhlPlayByPlay(gameId) {
+  const url = `https://api-web.nhle.com/v1/gamecenter/${gameId}/play-by-play`;
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error(`play-by-play failed: ${res.status} ${await res.text()}`);
   return res.json();
 }
 
@@ -141,12 +141,85 @@ function statLine(p) {
   const sog = p.sog ?? p.shots ?? 0;
   const hits = p.hits ?? 0;
   const toi = p.toi ?? "";
-  return `${g}-${a}-${pts} | ${sog} SOG | ${hits} H | ${pim} PIM | ${toi}`;
+  return `G ${g} | A ${a} | PTS ${pts} | PIM ${pim} | SOG ${sog} | H ${hits} | TOI ${toi}`;
+}
+
+function titleize(s) {
+  return (s ?? "")
+    .toString()
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (m) => m.toUpperCase())
+    .trim();
+}
+
+function playerIdOf(p) {
+  return p?.playerId ?? p?.id ?? p?.player?.id ?? null;
+}
+
+// Build: Map(playerId => [{label, mins, period, time}])
+function buildPenaltyMap(pbp) {
+  const plays =
+    pbp?.plays ??
+    pbp?.gamecenter?.plays ??
+    pbp?.liveData?.plays?.allPlays ??
+    [];
+
+  const map = new Map();
+
+  for (const pl of plays) {
+    const type = (pl?.typeDescKey ?? pl?.result?.eventTypeId ?? "").toString().toLowerCase();
+    if (!type.includes("penalty")) continue;
+
+    const d = pl?.details ?? pl?.result ?? {};
+    const pid =
+      d.committedByPlayerId ??
+      d.penaltyPlayerId ??
+      d.servedByPlayerId ??
+      d.playerId ??
+      null;
+
+    if (!pid) continue;
+
+    const mins = d.duration ?? d.penaltyMinutes ?? d.minutes ?? null;
+
+    const label =
+      titleize(d.descKey) ||
+      titleize(d.typeCode) ||
+      titleize(d.penaltyType) ||
+      "Penalty";
+
+    const period = pl?.periodDescriptor?.number ?? pl?.about?.period ?? null;
+
+    const time =
+      pl?.timeInPeriod ??
+      pl?.about?.periodTime ??
+      pl?.timeRemaining ??
+      "";
+
+    const entry = { label, mins, period, time };
+
+    if (!map.has(pid)) map.set(pid, []);
+    map.get(pid).push(entry);
+  }
+
+  return map;
+}
+
+function formatPenaltyShort(list, maxItems = 2) {
+  if (!list || !list.length) return "";
+  const shown = list.slice(0, maxItems).map((x) => {
+    const m = x.mins != null ? ` (${x.mins})` : "";
+    const t = x.period ? `P${x.period} ${x.time || ""}`.trim() : "";
+    return `${x.label}${m}${t ? ` @ ${t}` : ""}`;
+  });
+  const more = list.length > maxItems ? ` +${list.length - maxItems} more` : "";
+  return `⚠️ ${shown.join(", ")}${more}`;
 }
 
 /**
  * ✅ IMPORTANT:
- * Players are under box.playerByGameStats.awayTeam/homeTeam (not nested in box.awayTeam)
+ * Players are under box.playerByGameStats.awayTeam/homeTeam
  */
 function extractSkatersFromBoxscore(box) {
   const out = {};
@@ -212,44 +285,42 @@ function buildRealLinesTOIFallback(boxSkaters) {
   return linesByTeam;
 }
 
-function clip(s, max) {
-  const str = (s ?? "").toString();
-  return str.length > max ? str.slice(0, max - 1) + "…" : str;
-}
-
-function teamEmbed({ teamName, abbr, rosters, rl }) {
+function teamEmbed({ teamName, abbr, rosters, rl, penaltyMap }) {
   const charTeam = rosters[abbr] || null;
-
   const fields = [];
 
   // --- Forwards: L1-L4 (two-column)
   for (let i = 0; i < 4; i++) {
-  const trio = rl?.F?.[i] ?? [null, null, null];
-  const ch = charTeam?.F?.[i] ?? { LW: "", C: "", RW: "" };
+    const trio = rl?.F?.[i] ?? [null, null, null];
+    const ch = charTeam?.F?.[i] ?? { LW: "", C: "", RW: "" };
 
-  const lw = trio[0], c = trio[1], rw = trio[2];
+    const lw = trio[0], c = trio[1], rw = trio[2];
 
-  const lwPick = pickName(ch.LW, realName(lw));
-  const cPick  = pickName(ch.C,  realName(c));
-  const rwPick = pickName(ch.RW, realName(rw));
-  
-  const val =
-    `• **LW:** ${fmtName(lwPick)}${lw ? ` — ${statLine(lw)}` : ""}\n` +
-    `• **C:** ${fmtName(cPick)}${c ? ` — ${statLine(c)}` : ""}\n` +
-    `• **RW:** ${fmtName(rwPick)}${rw ? ` — ${statLine(rw)}` : ""}`;
+    const lwPick = pickName(ch.LW, realName(lw));
+    const cPick  = pickName(ch.C,  realName(c));
+    const rwPick = pickName(ch.RW, realName(rw));
 
-  fields.push({ name: `L${i + 1}`, value: val || "—", inline: true });
+    const lwPen = formatPenaltyShort(penaltyMap?.get(playerIdOf(lw)));
+    const cPen  = formatPenaltyShort(penaltyMap?.get(playerIdOf(c)));
+    const rwPen = formatPenaltyShort(penaltyMap?.get(playerIdOf(rw)));
 
-  // ✅ row break after L2 and after L4 (optional after L4)
-  if (i === 1 || i === 3) {
-    fields.push({ name: "\u200B", value: "\u200B", inline: false });
+    const val =
+      `• **LW:** ${fmtName(lwPick)}${lw ? ` — ${statLine(lw)}` : ""}${lwPen ? `\n  ${lwPen}` : ""}\n` +
+      `• **C:** ${fmtName(cPick)}${c ? ` — ${statLine(c)}` : ""}${cPen ? `\n  ${cPen}` : ""}\n` +
+      `• **RW:** ${fmtName(rwPick)}${rw ? ` — ${statLine(rw)}` : ""}${rwPen ? `\n  ${rwPen}` : ""}`;
+
+    fields.push({ name: `L${i + 1}`, value: val || "—", inline: true });
+
+    // row break after L2 and after L4
+    if (i === 1 || i === 3) {
+      fields.push({ name: "\u200B", value: "\u200B", inline: false });
+    }
   }
-}
 
-  // spacer so Defense starts on a new row (Discord trick)
+  // spacer so Defense starts on a new row
   fields.push({ name: "\u200B", value: "\u200B", inline: false });
 
-  // --- Defense: D1-D3 (two-column-ish)
+  // --- Defense: D1-D3
   for (let i = 0; i < 3; i++) {
     const pair = rl?.D?.[i] ?? [null, null];
     const ch = charTeam?.D?.[i] ?? { LD: "", RD: "" };
@@ -258,13 +329,16 @@ function teamEmbed({ teamName, abbr, rosters, rl }) {
 
     const d1Pick = pickName(ch.LD, realName(d1));
     const d2Pick = pickName(ch.RD, realName(d2));
-    
+
+    const d1Pen = formatPenaltyShort(penaltyMap?.get(playerIdOf(d1)));
+    const d2Pen = formatPenaltyShort(penaltyMap?.get(playerIdOf(d2)));
+
     const val =
-      `• **LD:** ${fmtName(d1Pick)}${d1 ? ` — ${statLine(d1)}` : ""}\n` +
-      `• **RD:** ${fmtName(d2Pick)}${d2 ? ` — ${statLine(d2)}` : ""}`;
+      `• **LD:** ${fmtName(d1Pick)}${d1 ? ` — ${statLine(d1)}` : ""}${d1Pen ? `\n  ${d1Pen}` : ""}\n` +
+      `• **RD:** ${fmtName(d2Pick)}${d2 ? ` — ${statLine(d2)}` : ""}${d2Pen ? `\n  ${d2Pen}` : ""}`;
 
     fields.push({ name: `D${i + 1}`, value: val || "—", inline: true });
-if (i === 1) fields.push({ name: "\u200B", value: "\u200B", inline: false });
+    if (i === 1) fields.push({ name: "\u200B", value: "\u200B", inline: false });
   }
 
   fields.push({ name: "\u200B", value: "\u200B", inline: false });
@@ -274,6 +348,7 @@ if (i === 1) fields.push({ name: "\u200B", value: "\u200B", inline: false });
   for (let i = 0; i < 2; i++) {
     const gg = rl?.G?.[i] ?? null;
     const ch = charTeam?.G?.[i] ?? { G: "" };
+
     const gPick = pickName(ch.G, realName(gg));
     const gName = fmtName(gPick);
 
@@ -291,10 +366,7 @@ if (i === 1) fields.push({ name: "\u200B", value: "\u200B", inline: false });
 
   fields.push({ name: "Goalies", value: gLines.join("\n") || "—", inline: false });
 
-  return {
-    title: `${teamName}`,
-    fields,
-  };
+  return { title: `${teamName}`, fields };
 }
 
 function headerEmbed({ gameId, box }) {
@@ -345,6 +417,9 @@ async function main() {
     }
 
     const box = await nhlBoxscore(gameId);
+    const pbp = await nhlPlayByPlay(gameId);
+    const penaltyMap = buildPenaltyMap(pbp);
+
     const boxSkaters = extractSkatersFromBoxscore(box);
 
     // log counts
@@ -365,25 +440,25 @@ async function main() {
       embeds: [headerEmbed({ gameId, box })],
     });
 
-    const threadId = created?.channel_id || created?.id; // forum post/thread id (varies by response)
+    const threadId = created?.channel_id || created?.id;
     console.log("Created thread:", { threadId });
 
-    // 2) Post team embeds inside the thread (clean + avoids 2000-char truncation)
+    // 2) Post team embeds inside the thread
     const awayTeamName = boxSkaters[awayAbbr]?.teamName ?? awayAbbr;
     const homeTeamName = boxSkaters[homeAbbr]?.teamName ?? homeAbbr;
 
     await postWebhook({
       username: "HOCKEYHOOK",
-      threadId: threadId,
-      embeds: [teamEmbed({ teamName: awayTeamName, abbr: awayAbbr, rosters, rl: realLines[awayAbbr] })],
+      threadId,
+      embeds: [teamEmbed({ teamName: awayTeamName, abbr: awayAbbr, rosters, rl: realLines[awayAbbr], penaltyMap })],
     });
 
-    await sleep(250); // small spacing to reduce rate-limit risk
+    await sleep(300);
 
     await postWebhook({
       username: "HOCKEYHOOK",
-      threadId: threadId,
-      embeds: [teamEmbed({ teamName: homeTeamName, abbr: homeAbbr, rosters, rl: realLines[homeAbbr] })],
+      threadId,
+      embeds: [teamEmbed({ teamName: homeTeamName, abbr: homeAbbr, rosters, rl: realLines[homeAbbr], penaltyMap })],
     });
 
     if (!IGNORE_POSTED) {
@@ -391,8 +466,7 @@ async function main() {
       await writeJson(POSTED_PATH, posted);
     }
 
-    // small pause between games
-    await sleep(350);
+    await sleep(450);
   }
 
   console.log("Done.");
