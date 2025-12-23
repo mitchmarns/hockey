@@ -719,7 +719,7 @@ async function main() {
     const starsE = starsEmbed({ stars, charMap, realMap });
 
     // 1) Create forum thread with header embed
-    const threadName = `${DATE} • ${box.awayTeam.commonName.default} @ ${box.homeTeam.commonName.default} • ${gameId}`;
+    const threadName = `${box.awayTeam.commonName.default} @ ${box.homeTeam.commonName.default}`;
     const created = await postWebhook({
       username: "ESPN",
       threadName,
