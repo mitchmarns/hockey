@@ -4,10 +4,24 @@ on:
   schedule:
     - cron: "30 9 * * *" # 09:30 UTC daily (01:30 PT winter / 02:30 PT summer)
   workflow_dispatch:
+    inputs:
+      date:
+        description: "YYYY-MM-DD (UTC). Leave blank to use yesterday (UTC)."
+        required: false
+      force_all:
+        description: "true = post even if games not final"
+        required: false
+        default: "false"
+      ignore_posted:
+        description: "true = repost even if already posted"
+        required: false
+        default: "false"
 
 jobs:
   post:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -21,34 +35,32 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Post yesterday (UTC)
-        run: node post-games.js
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          DATE: ${{ env.YESTERDAY_UTC }}
-          FORCE_ALL: "false"
-          IGNORE_POSTED: "false"
-
-      - name: Post today (UTC)
-        run: node post-games.js
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          DATE: ${{ env.TODAY_UTC }}
-          FORCE_ALL: "false"
-          IGNORE_POSTED: "false"
-
       - name: Set UTC dates
-        id: dates
         run: |
           echo "TODAY_UTC=$(date -u +%F)" >> $GITHUB_ENV
           echo "YESTERDAY_UTC=$(date -u -d 'yesterday' +%F)" >> $GITHUB_ENV
+
+      - name: Choose run date
+        run: |
+          if [[ -n "${{ github.event.inputs.date }}" ]]; then
+            echo "RUN_DATE=${{ github.event.inputs.date }}" >> $GITHUB_ENV
+          else
+            echo "RUN_DATE=${YESTERDAY_UTC}" >> $GITHUB_ENV
+          fi
+
+      - name: Run post-games
+        run: node post-games.js
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DATE: ${{ env.RUN_DATE }}
+          FORCE_ALL: ${{ github.event.inputs.force_all || 'false' }}
+          IGNORE_POSTED: ${{ github.event.inputs.ignore_posted || 'false' }}
 
       - name: Commit posted.json if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Only commit if data/posted.json changed
           if [[ -n "$(git status --porcelain data/posted.json)" ]]; then
             git add data/posted.json
             git commit -m "Update posted game IDs"
