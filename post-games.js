@@ -29,7 +29,6 @@ function charOrReal(charName, realName) {
 }
 
 function toiToSeconds(toi) {
-  // boxscore uses "MM:SS"
   const s = (toi ?? "").toString().trim();
   const m = s.match(/^(\d+):(\d{2})$/);
   if (!m) return 0;
@@ -63,22 +62,29 @@ async function nhlBoxscore(gameId) {
   return res.json();
 }
 
-async function postWebhook(payload) {
-  must(WEBHOOK_URL, "Missing DISCORD_WEBHOOK_URL (GitHub secret).");
+/**
+ * Forum threads:
+ * - threadName => creates a new thread (Forum channel only)
+ * - threadId   => posts inside an existing thread
+ */
+async function postWebhook({ content, username = "HOCKEYHOOK", threadId = "", threadName = "" }) {
+  must(WEBHOOK_URL, "Missing DISCORD_WEBHOOK_URL");
 
-  const hookUrl = WEBHOOK_URL.includes("?")
-    ? `${WEBHOOK_URL}&wait=true`
-    : `${WEBHOOK_URL}?wait=true`;
+  const url = new URL(WEBHOOK_URL);
+  url.searchParams.set("wait", "true");
+  if (threadId) url.searchParams.set("thread_id", threadId);
 
-  const res = await fetch(hookUrl, {
+  const body = { content, username };
+  if (threadName) body.thread_name = threadName;
+
+  const res = await fetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) throw new Error(`Discord webhook failed: ${res.status} ${await res.text()}`);
-  const data = await res.json();
-  console.log("Posted:", { message_id: data.id, channel_id: data.channel_id });
+  return res.json();
 }
 
 function realName(p) {
@@ -99,17 +105,12 @@ function statLine(p) {
   const a = p.assists ?? 0;
   const pts = p.points ?? (g + a);
   const pim = p.pim ?? 0;
-  const sog = p.sog ?? p.shots ?? 0;   // boxscore uses sog
+  const sog = p.sog ?? p.shots ?? 0;
   const hits = p.hits ?? 0;
   const toi = p.toi ?? "";
   return `${g}G ${a}A ${pts}P | ${sog} SOG | ${hits} H | ${pim} PIM | TOI ${toi}`;
 }
 
-/**
- * ✅ IMPORTANT FIX:
- * Players are in box.playerByGameStats.[awayTeam|homeTeam],
- * NOT under box.awayTeam.playerByGameStats...
- */
 function extractSkatersFromBoxscore(box) {
   const out = {};
   for (const side of ["awayTeam", "homeTeam"]) {
@@ -173,7 +174,79 @@ function buildRealLinesTOIFallback(boxSkaters) {
   return linesByTeam;
 }
 
-function renderMirroredGame({ gameId, box, rosters, realLines, boxSkaters }) {
+function renderOneTeam({ abbr, box, rosters, realLines, boxSkaters }) {
+  const teamName = boxSkaters[abbr]?.teamName ?? abbr;
+  const rl = realLines[abbr];
+  const charTeam = rosters[abbr] || null;
+
+  const blocks = [];
+  blocks.push(`**${teamName} — Character Mirror**`);
+
+  // Forwards
+  blocks.push(`**Forwards**`);
+  for (let i = 0; i < 4; i++) {
+    const trio = rl?.F?.[i] ?? [null, null, null];
+    const ch = charTeam?.F?.[i] ?? { LW: "", C: "", RW: "" };
+
+    const lw = trio[0];
+    const c = trio[1];
+    const rw = trio[2];
+
+    const lwReal = realName(lw);
+    const cReal = realName(c);
+    const rwReal = realName(rw);
+
+    blocks.push(
+      `L${i + 1}: ${charOrReal(ch.LW, lwReal)} ⇐ ${lwReal || "—"}${lw ? ` (${statLine(lw)})` : ""}\n` +
+      `    ${charOrReal(ch.C, cReal)} ⇐ ${cReal || "—"}${c ? ` (${statLine(c)})` : ""}\n` +
+      `    ${charOrReal(ch.RW, rwReal)} ⇐ ${rwReal || "—"}${rw ? ` (${statLine(rw)})` : ""}`
+    );
+  }
+
+  // Defense
+  blocks.push(`\n**Defense**`);
+  for (let i = 0; i < 3; i++) {
+    const pair = rl?.D?.[i] ?? [null, null];
+    const ch = charTeam?.D?.[i] ?? { LD: "", RD: "" };
+
+    const d1 = pair[0];
+    const d2 = pair[1];
+
+    const d1Real = realName(d1);
+    const d2Real = realName(d2);
+
+    blocks.push(
+      `D${i + 1}: ${charOrReal(ch.LD, d1Real)} ⇐ ${d1Real || "—"}${d1 ? ` (${statLine(d1)})` : ""}\n` +
+      `    ${charOrReal(ch.RD, d2Real)} ⇐ ${d2Real || "—"}${d2 ? ` (${statLine(d2)})` : ""}`
+    );
+  }
+
+  // Goalies
+  blocks.push(`\n**Goalies**`);
+  for (let i = 0; i < 2; i++) {
+    const gg = rl?.G?.[i] ?? null;
+    const ch = charTeam?.G?.[i] ?? { G: "" };
+
+    const gReal = realName(gg);
+
+    if (!gg) {
+      blocks.push(`G${i + 1}: ${charOrReal(ch.G, gReal)} ⇐ —`);
+      continue;
+    }
+
+    const sv = gg.savePctg != null ? `${Math.round(gg.savePctg * 1000) / 10}%` : "";
+    const ga = gg.goalsAgainst != null ? gg.goalsAgainst : "—";
+    blocks.push(`G${i + 1}: ${charOrReal(ch.G, gReal)} ⇐ ${gReal} (${sv} | GA ${ga})`);
+  }
+
+  if (!charTeam) {
+    blocks.push(`_(No character roster for ${abbr}; showing real players.)_`);
+  }
+
+  return blocks.join("\n");
+}
+
+function buildThreadMessages({ gameId, box, rosters, realLines, boxSkaters }) {
   const awayAbbr = box.awayTeam.abbrev;
   const homeAbbr = box.homeTeam.abbrev;
 
@@ -181,81 +254,10 @@ function renderMirroredGame({ gameId, box, rosters, realLines, boxSkaters }) {
     `🏒 **${box.awayTeam.commonName.default} @ ${box.homeTeam.commonName.default}** (Game ${gameId})\n` +
     `Final: ${box.awayTeam.score}–${box.homeTeam.score}\n`;
 
-  const blocks = [header];
+  const awayMsg = renderOneTeam({ abbr: awayAbbr, box, rosters, realLines, boxSkaters });
+  const homeMsg = renderOneTeam({ abbr: homeAbbr, box, rosters, realLines, boxSkaters });
 
-  for (const abbr of [awayAbbr, homeAbbr]) {
-    const teamName = boxSkaters[abbr]?.teamName ?? abbr;
-    const rl = realLines[abbr];
-
-    const charTeam = rosters[abbr] || null;
-
-    blocks.push(`\n**${teamName} — Character Mirror**`);
-
-    // Forwards
-    blocks.push(`**Forwards**`);
-    for (let i = 0; i < 4; i++) {
-      const trio = rl?.F?.[i] ?? [null, null, null];
-      const ch = charTeam?.F?.[i] ?? { LW: "", C: "", RW: "" };
-
-      const lw = trio[0];
-      const c = trio[1];
-      const rw = trio[2];
-
-      const lwReal = realName(lw);
-      const cReal = realName(c);
-      const rwReal = realName(rw);
-
-      blocks.push(
-        `L${i + 1}: ${charOrReal(ch.LW, lwReal)} ⇐ ${lwReal || "—"}${lw ? ` (${statLine(lw)})` : ""}\n` +
-        `    ${charOrReal(ch.C, cReal)} ⇐ ${cReal || "—"}${c ? ` (${statLine(c)})` : ""}\n` +
-        `    ${charOrReal(ch.RW, rwReal)} ⇐ ${rwReal || "—"}${rw ? ` (${statLine(rw)})` : ""}`
-      );
-    }
-
-    // Defense
-    blocks.push(`\n**Defense**`);
-    for (let i = 0; i < 3; i++) {
-      const pair = rl?.D?.[i] ?? [null, null];
-      const ch = charTeam?.D?.[i] ?? { LD: "", RD: "" };
-
-      const d1 = pair[0];
-      const d2 = pair[1];
-
-      const d1Real = realName(d1);
-      const d2Real = realName(d2);
-
-      blocks.push(
-        `D${i + 1}: ${charOrReal(ch.LD, d1Real)} ⇐ ${d1Real || "—"}${d1 ? ` (${statLine(d1)})` : ""}\n` +
-        `    ${charOrReal(ch.RD, d2Real)} ⇐ ${d2Real || "—"}${d2 ? ` (${statLine(d2)})` : ""}`
-      );
-    }
-
-    // Goalies
-    blocks.push(`\n**Goalies**`);
-    for (let i = 0; i < 2; i++) {
-      const gg = rl?.G?.[i] ?? null;
-      const ch = charTeam?.G?.[i] ?? { G: "" };
-
-      const gReal = realName(gg);
-
-      if (!gg) {
-        blocks.push(`G${i + 1}: ${charOrReal(ch.G, gReal)} ⇐ —`);
-        continue;
-      }
-
-      const sv = gg.savePctg != null ? `${Math.round(gg.savePctg * 1000) / 10}%` : "";
-      const ga = gg.goalsAgainst != null ? gg.goalsAgainst : "—";
-      blocks.push(`G${i + 1}: ${charOrReal(ch.G, gReal)} ⇐ ${gReal} (${sv} | GA ${ga})`);
-    }
-
-    if (!charTeam) {
-      blocks.push(`_(No character roster for ${abbr}; showing real players.)_`);
-    }
-  }
-
-  let out = blocks.join("\n");
-  if (out.length > 1900) out = out.slice(0, 1900) + "\n…(truncated)";
-  return out;
+  return { header, awayMsg, homeMsg };
 }
 
 function isFinalGame(g) {
@@ -297,15 +299,31 @@ async function main() {
     const box = await nhlBoxscore(gameId);
     const boxSkaters = extractSkatersFromBoxscore(box);
 
-    // Debug (in logs): make sure we have players
+    // Debug
     for (const [abbr, grp] of Object.entries(boxSkaters)) {
       console.log(`${gameId} ${abbr}: F=${grp.forwards.length} D=${grp.defense.length} G=${grp.goalies.length}`);
     }
 
     const realLines = buildRealLinesTOIFallback(boxSkaters);
+    const { header, awayMsg, homeMsg } = buildThreadMessages({ gameId, box, rosters, realLines, boxSkaters });
 
-    const text = renderMirroredGame({ gameId, box, rosters, realLines, boxSkaters });
-    await postWebhook({ username: "HOCKEYHOOK", content: text });
+    const awayName = box.awayTeam.commonName.default;
+    const homeName = box.homeTeam.commonName.default;
+
+    // Create a forum thread using thread_name
+    const created = await postWebhook({
+      username: "HOCKEYHOOK",
+      content: header,
+      threadName: `${awayName} @ ${homeName} — ${DATE}`,
+    });
+
+    // In forum webhooks, the returned channel_id is the thread’s channel id
+    const threadId = created.channel_id;
+    console.log("Created thread:", { threadId });
+
+    // Post team messages into the thread
+    await postWebhook({ username: "HOCKEYHOOK", content: awayMsg, threadId });
+    await postWebhook({ username: "HOCKEYHOOK", content: homeMsg, threadId });
 
     if (!IGNORE_POSTED) {
       posted.postedGameIds.push(gameId);
