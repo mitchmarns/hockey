@@ -1,4 +1,4 @@
-// post-games.js (Node 20+; CommonJS)
+// post-games.js (Node 20+; CommonJS) — Forum threads + Embeds + one-name slots
 const fs = require("node:fs/promises");
 const path = require("node:path");
 
@@ -11,11 +11,6 @@ const IGNORE_POSTED = String(process.env.IGNORE_POSTED || "false").toLowerCase()
 
 const ROSTERS_PATH = path.join(process.cwd(), "rosters.json");
 const POSTED_PATH = path.join(process.cwd(), "data", "posted.json");
-
-function must(v, msg) {
-  if (!v) throw new Error(msg);
-  return v;
-}
 
 function isBlank(v) {
   return v === undefined || v === null || `${v}`.trim() === "";
@@ -62,61 +57,54 @@ async function nhlBoxscore(gameId) {
   return res.json();
 }
 
-/**
- * Forum threads:
- * - threadName => creates a new thread (Forum channel only)
- * - threadId   => posts inside an existing thread
- */
-async function sleep(ms) {
+function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function postWebhook({ content, username = "HOCKEYHOOK", threadId = "", threadName = "" }) {
-  must(WEBHOOK_URL, "Missing DISCORD_WEBHOOK_URL");
+/**
+ * Webhook execute:
+ * - forum: provide thread_name (create new forum post/thread) OR thread_id (post inside it)
+ * - supports embeds
+ */
+async function postWebhook({ content = "", embeds = [], username = "HOCKEYHOOK", threadId = "", threadName = "" }) {
+  if (!WEBHOOK_URL) throw new Error("Missing DISCORD_WEBHOOK_URL");
 
   const url = new URL(WEBHOOK_URL);
   url.searchParams.set("wait", "true");
   if (threadId) url.searchParams.set("thread_id", threadId);
 
-  const body = { content, username };
-  if (threadName) body.thread_name = threadName;
+  const body = { username };
+  if (!isBlank(content)) body.content = content;
+  if (embeds && embeds.length) body.embeds = embeds;
+  if (!isBlank(threadName)) body.thread_name = threadName; // forum-only
 
-  // Retry loop for rate limits
-  for (let attempt = 0; attempt < 8; attempt++) {
+  // Rate-limit retry loop (handles 429 from Discord)
+  for (let attempt = 0; attempt < 5; attempt++) {
     const res = await fetch(url.toString(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 
-    if (res.ok) return res.json();
-
-    // Handle Discord rate limit (429)
-    if (res.status === 429) {
-      let retryMs = 1000; // fallback
-      try {
-        const data = await res.json();
-        const retryAfter = Number(data.retry_after);
-        // Discord's retry_after is seconds (often fractional)
-        if (!Number.isNaN(retryAfter) && retryAfter > 0) {
-          retryMs = Math.ceil(retryAfter * 1000);
-        }
-        console.warn(`Rate limited. Waiting ${retryMs}ms then retrying...`);
-      } catch {
-        console.warn(`Rate limited. Waiting ${retryMs}ms then retrying...`);
-      }
-
-      // small cushion so we don't re-hit immediately
-      await sleep(retryMs + 150);
-      continue;
+    if (res.status !== 429) {
+      if (!res.ok) throw new Error(`Discord webhook failed: ${res.status} ${await res.text()}`);
+      return res.json();
     }
 
-    // Other error: include body for debugging
-    throw new Error(`Discord webhook failed: ${res.status} ${await res.text()}`);
+    // 429: obey retry_after (seconds)
+    let retryAfterMs = 1000;
+    try {
+      const j = await res.json();
+      retryAfterMs = Math.ceil((j.retry_after ?? 1) * 1000) + 150;
+    } catch {
+      retryAfterMs = 1000;
+    }
+    await sleep(retryAfterMs);
   }
 
-  throw new Error("Discord webhook failed: too many rate limit retries.");
+  throw new Error("Discord webhook failed: too many rate limits.");
 }
+
 function realName(p) {
   if (!p) return "";
   if (p.name && typeof p.name === "object") {
@@ -141,13 +129,17 @@ function statLine(p) {
   return `${g}G ${a}A ${pts}P | ${sog} SOG | ${hits} H | ${pim} PIM | TOI ${toi}`;
 }
 
+/**
+ * ✅ IMPORTANT:
+ * Players are under box.playerByGameStats.awayTeam/homeTeam (not nested in box.awayTeam)
+ */
 function extractSkatersFromBoxscore(box) {
   const out = {};
   for (const side of ["awayTeam", "homeTeam"]) {
     const teamInfo = box[side];
     const stats = box.playerByGameStats?.[side] || {};
-
     const abbr = teamInfo?.abbrev || side.toUpperCase();
+
     out[abbr] = {
       teamName: teamInfo?.commonName?.default ?? abbr,
       abbrev: abbr,
@@ -159,6 +151,7 @@ function extractSkatersFromBoxscore(box) {
   return out;
 }
 
+// TOI-based approximation of lines
 function buildRealLinesTOIFallback(boxSkaters) {
   const linesByTeam = {};
 
@@ -204,90 +197,95 @@ function buildRealLinesTOIFallback(boxSkaters) {
   return linesByTeam;
 }
 
-function renderOneTeam({ abbr, box, rosters, realLines, boxSkaters }) {
-  const teamName = boxSkaters[abbr]?.teamName ?? abbr;
-  const rl = realLines[abbr];
+function clip(s, max) {
+  const str = (s ?? "").toString();
+  return str.length > max ? str.slice(0, max - 1) + "…" : str;
+}
+
+function teamEmbed({ teamName, abbr, rosters, rl }) {
   const charTeam = rosters[abbr] || null;
 
-  const blocks = [];
-  blocks.push(`**${teamName} — Character Mirror**`);
-
-  // Forwards
-  blocks.push(`**Forwards**`);
+  const fLines = [];
   for (let i = 0; i < 4; i++) {
     const trio = rl?.F?.[i] ?? [null, null, null];
     const ch = charTeam?.F?.[i] ?? { LW: "", C: "", RW: "" };
 
-    const lw = trio[0];
-    const c = trio[1];
-    const rw = trio[2];
+    const lw = trio[0], c = trio[1], rw = trio[2];
 
-    const lwReal = realName(lw);
-    const cReal = realName(c);
-    const rwReal = realName(rw);
+    const lwName = charOrReal(ch.LW, realName(lw));
+    const cName = charOrReal(ch.C, realName(c));
+    const rwName = charOrReal(ch.RW, realName(rw));
 
-    blocks.push(
-      `L${i + 1}: ${charOrReal(ch.LW, lwReal)} ⇐ ${lwReal || "—"}${lw ? ` (${statLine(lw)})` : ""}\n` +
-      `    ${charOrReal(ch.C, cReal)} ⇐ ${cReal || "—"}${c ? ` (${statLine(c)})` : ""}\n` +
-      `    ${charOrReal(ch.RW, rwReal)} ⇐ ${rwReal || "—"}${rw ? ` (${statLine(rw)})` : ""}`
+    fLines.push(
+      `**L${i + 1}**\n` +
+      `• LW: **${lwName}**${lw ? ` — ${statLine(lw)}` : ""}\n` +
+      `• C: **${cName}**${c ? ` — ${statLine(c)}` : ""}\n` +
+      `• RW: **${rwName}**${rw ? ` — ${statLine(rw)}` : ""}`
     );
   }
 
-  // Defense
-  blocks.push(`\n**Defense**`);
+  const dLines = [];
   for (let i = 0; i < 3; i++) {
     const pair = rl?.D?.[i] ?? [null, null];
     const ch = charTeam?.D?.[i] ?? { LD: "", RD: "" };
 
-    const d1 = pair[0];
-    const d2 = pair[1];
+    const d1 = pair[0], d2 = pair[1];
 
-    const d1Real = realName(d1);
-    const d2Real = realName(d2);
+    const d1Name = charOrReal(ch.LD, realName(d1));
+    const d2Name = charOrReal(ch.RD, realName(d2));
 
-    blocks.push(
-      `D${i + 1}: ${charOrReal(ch.LD, d1Real)} ⇐ ${d1Real || "—"}${d1 ? ` (${statLine(d1)})` : ""}\n` +
-      `    ${charOrReal(ch.RD, d2Real)} ⇐ ${d2Real || "—"}${d2 ? ` (${statLine(d2)})` : ""}`
+    dLines.push(
+      `**D${i + 1}**\n` +
+      `• LD: **${d1Name}**${d1 ? ` — ${statLine(d1)}` : ""}\n` +
+      `• RD: **${d2Name}**${d2 ? ` — ${statLine(d2)}` : ""}`
     );
   }
 
-  // Goalies
-  blocks.push(`\n**Goalies**`);
+  const gLines = [];
   for (let i = 0; i < 2; i++) {
     const gg = rl?.G?.[i] ?? null;
     const ch = charTeam?.G?.[i] ?? { G: "" };
 
-    const gReal = realName(gg);
+    const gName = charOrReal(ch.G, realName(gg));
 
     if (!gg) {
-      blocks.push(`G${i + 1}: ${charOrReal(ch.G, gReal)} ⇐ —`);
+      gLines.push(`• G${i + 1}: **${gName}**`);
       continue;
     }
 
     const sv = gg.savePctg != null ? `${Math.round(gg.savePctg * 1000) / 10}%` : "";
     const ga = gg.goalsAgainst != null ? gg.goalsAgainst : "—";
-    blocks.push(`G${i + 1}: ${charOrReal(ch.G, gReal)} ⇐ ${gReal} (${sv} | GA ${ga})`);
+    gLines.push(`• G${i + 1}: **${gName}** — SV% ${sv || "—"} | GA ${ga}`);
   }
 
-  if (!charTeam) {
-    blocks.push(`_(No character roster for ${abbr}; showing real players.)_`);
-  }
+  const note = charTeam
+    ? ""
+    : `\n_No character roster for ${abbr}; showing real players._`;
 
-  return blocks.join("\n");
+  // Embed field values are max 1024 chars each, so clip defensively.
+  const forwardsVal = clip(fLines.join("\n\n"), 1024);
+  const defenseVal = clip(dLines.join("\n\n"), 1024);
+  const goaliesVal = clip(gLines.join("\n") + note, 1024);
+
+  return {
+    title: `${teamName} — Character Mirror`,
+    fields: [
+      { name: "Forwards", value: forwardsVal || "—", inline: false },
+      { name: "Defense", value: defenseVal || "—", inline: false },
+      { name: "Goalies", value: goaliesVal || "—", inline: false },
+    ],
+  };
 }
 
-function buildThreadMessages({ gameId, box, rosters, realLines, boxSkaters }) {
-  const awayAbbr = box.awayTeam.abbrev;
-  const homeAbbr = box.homeTeam.abbrev;
+function headerEmbed({ gameId, box }) {
+  const away = box.awayTeam.commonName.default;
+  const home = box.homeTeam.commonName.default;
+  const score = `${box.awayTeam.score}–${box.homeTeam.score}`;
 
-  const header =
-    `🏒 **${box.awayTeam.commonName.default} @ ${box.homeTeam.commonName.default}** (Game ${gameId})\n` +
-    `Final: ${box.awayTeam.score}–${box.homeTeam.score}\n`;
-
-  const awayMsg = renderOneTeam({ abbr: awayAbbr, box, rosters, realLines, boxSkaters });
-  const homeMsg = renderOneTeam({ abbr: homeAbbr, box, rosters, realLines, boxSkaters });
-
-  return { header, awayMsg, homeMsg };
+  return {
+    title: `🏒 ${away} @ ${home}`,
+    description: `**Final:** ${score}\n**Game:** ${gameId}\n**Date (UTC):** ${DATE}`,
+  };
 }
 
 function isFinalGame(g) {
@@ -313,7 +311,7 @@ async function main() {
   if (candidates.length === 0) {
     await postWebhook({
       username: "HOCKEYHOOK",
-      content: `🏒 HOCKEYHOOK — ${DATE}\nNo postable games found (try DATE=yesterday UTC, or FORCE_ALL=true).`,
+      embeds: [{ title: `🏒 HOCKEYHOOK — ${DATE}`, description: "No postable games found." }],
     });
     return;
   }
@@ -329,36 +327,52 @@ async function main() {
     const box = await nhlBoxscore(gameId);
     const boxSkaters = extractSkatersFromBoxscore(box);
 
-    // Debug
+    // log counts
     for (const [abbr, grp] of Object.entries(boxSkaters)) {
       console.log(`${gameId} ${abbr}: F=${grp.forwards.length} D=${grp.defense.length} G=${grp.goalies.length}`);
     }
 
     const realLines = buildRealLinesTOIFallback(boxSkaters);
-    const { header, awayMsg, homeMsg } = buildThreadMessages({ gameId, box, rosters, realLines, boxSkaters });
 
-    const awayName = box.awayTeam.commonName.default;
-    const homeName = box.homeTeam.commonName.default;
+    const awayAbbr = box.awayTeam.abbrev;
+    const homeAbbr = box.homeTeam.abbrev;
 
-    // Create a forum thread using thread_name
+    // 1) Create forum thread with starter embed (header)
+    const threadName = `${DATE} • ${box.awayTeam.commonName.default} @ ${box.homeTeam.commonName.default} • ${gameId}`;
     const created = await postWebhook({
       username: "HOCKEYHOOK",
-      content: header,
-      threadName: `${awayName} @ ${homeName} — ${DATE}`,
+      threadName,
+      embeds: [headerEmbed({ gameId, box })],
     });
 
-    // In forum webhooks, the returned channel_id is the thread’s channel id
-    const threadId = created.channel_id;
+    const threadId = created?.channel_id || created?.id; // forum post/thread id (varies by response)
     console.log("Created thread:", { threadId });
 
-    // Post team messages into the thread
-    await postWebhook({ username: "HOCKEYHOOK", content: awayMsg, threadId });
-    await postWebhook({ username: "HOCKEYHOOK", content: homeMsg, threadId });
+    // 2) Post team embeds inside the thread (clean + avoids 2000-char truncation)
+    const awayTeamName = boxSkaters[awayAbbr]?.teamName ?? awayAbbr;
+    const homeTeamName = boxSkaters[homeAbbr]?.teamName ?? homeAbbr;
+
+    await postWebhook({
+      username: "HOCKEYHOOK",
+      threadId: threadId,
+      embeds: [teamEmbed({ teamName: awayTeamName, abbr: awayAbbr, rosters, rl: realLines[awayAbbr] })],
+    });
+
+    await sleep(250); // small spacing to reduce rate-limit risk
+
+    await postWebhook({
+      username: "HOCKEYHOOK",
+      threadId: threadId,
+      embeds: [teamEmbed({ teamName: homeTeamName, abbr: homeAbbr, rosters, rl: realLines[homeAbbr] })],
+    });
 
     if (!IGNORE_POSTED) {
       posted.postedGameIds.push(gameId);
       await writeJson(POSTED_PATH, posted);
     }
+
+    // small pause between games
+    await sleep(350);
   }
 
   console.log("Done.");
