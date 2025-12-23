@@ -1,7 +1,4 @@
-// post-games.js (Node 20+; CommonJS) — Forum threads + Play-by-Play embeds (Goals + Penalties by Period)
-// - Uses rosters.json to "mirror" real NHL player IDs -> your character names (bolded)
-// - Posts one forum thread per game, then period-by-period embeds inside the thread
-// - No SOG/Hits/Lineups (pure play-by-play: goals + penalties)
+// post-games.js 
 
 const fs = require("node:fs/promises");
 const path = require("node:path");
@@ -273,16 +270,22 @@ function fmtPlayerNameById(playerId, charMap, realMap) {
 
 // -------------------- Play-by-play parsing --------------------
 function extractPlays(pbp) {
-  return (
+  const plays =
     pbp?.plays ??
     pbp?.gamecenter?.plays ??
     pbp?.liveData?.plays?.allPlays ??
-    []
-  );
+    [];
+
+  // Ensure chronological order
+  return [...plays].sort((a, b) => {
+    const ao = a?.sortOrder ?? a?.eventId ?? a?.about?.eventIdx ?? 0;
+    const bo = b?.sortOrder ?? b?.eventId ?? b?.about?.eventIdx ?? 0;
+    return ao - bo;
+  });
 }
 
 function playTypeKey(pl) {
-  return (pl?.typeDescKey ?? pl?.result?.eventTypeId ?? pl?.result?.event ?? "").toString().toLowerCase();
+  return (pl?.typeDescKey ?? pl?.result?.eventTypeId ?? "").toString().toLowerCase().trim();
 }
 
 function periodNumber(pl) {
@@ -407,7 +410,7 @@ function penaltyMinsFromDetails(d) {
 
 // Build period -> [strings] with goals+penalties in play order
 function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, realMap }) {
-  const periods = new Map(); // key(number|string) -> { label, lines: [] }
+  const periods = new Map(); // key -> { label, lines: [] }
 
   const pushLine = (per, line) => {
     const key = per ?? "Other";
@@ -421,49 +424,74 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
     periods.get(key).lines.push(line);
   };
 
-  for (const pl of plays) {
-    const tkey = playTypeKey(pl);
-    const d = pl?.details ?? pl?.result ?? {};
-    const perNum = periodNumber(pl);
+  // Track score ourselves so it doesn't spam final score everywhere
+  let curAway = 0;
+  let curHome = 0;
 
-    // Try to identify OT/SO if present
+  for (const pl of plays) {
+    const key = playTypeKey(pl);
+    const d = pl?.details ?? pl?.result ?? {};
+
+    const perNum = periodNumber(pl);
     let perKey = perNum;
-    const periodType = (pl?.periodDescriptor?.periodType ?? pl?.about?.periodType ?? "").toString().toUpperCase();
+
+    const periodType = (pl?.periodDescriptor?.periodType ?? pl?.about?.periodType ?? "")
+      .toString()
+      .toUpperCase();
+
     if (periodType === "OT") perKey = "OT";
     if (periodType === "SO") perKey = "SO";
 
     const time = timeInPeriod(pl) || "—";
     const abbr = teamAbbrFromPlay(pl, box, awayAbbr, homeAbbr);
     const teamPrefix = abbr ? `**${abbr}** ` : "";
-    const score = scoreAfterPlay(pl, box);
 
-    // GOALS
-    if (tkey.includes("goal")) {
+    // ✅ ONLY real GOALS (avoid shot-on-goal)
+    const isGoal =
+      key === "goal" ||
+      (key.includes("goal") && !key.includes("shot") && !key.includes("shot-on-goal") && !key.includes("shotongoal"));
+
+    // ✅ ONLY real PENALTIES
+    const isPenalty = key === "penalty" || key.includes("penalty");
+
+    if (isGoal) {
+      // update score (prefer feed score if present)
+      if (d.awayScore != null && d.homeScore != null) {
+        curAway = Number(d.awayScore);
+        curHome = Number(d.homeScore);
+      } else {
+        if (abbr === awayAbbr) curAway += 1;
+        else if (abbr === homeAbbr) curHome += 1;
+      }
+
       const { scorer, a1, a2 } = goalPlayersFromDetails(d);
+
       const scorerName = fmtPlayerNameById(scorer, charMap, realMap);
       const a1Name = a1 ? fmtPlayerNameById(a1, charMap, realMap) : "";
       const a2Name = a2 ? fmtPlayerNameById(a2, charMap, realMap) : "";
 
       const tag = strengthTag(d);
       const tagTxt = tag ? ` (${tag})` : "";
+
       const shot = shotTypeFromDetails(d);
       const shotTxt = shot ? ` — ${shot}` : "";
+
+      const scoreTxt = `  •  Score: ${curAway}–${curHome}`;
 
       const assists = [a1Name, a2Name].filter((x) => x && x !== "—");
       const assistsTxt = assists.length ? `\n↳ Assists: ${assists.join(", ")}` : "";
 
-      const scoreTxt = score ? `  •  Score: ${score}` : "";
+      // If somehow scorer is missing, don't post junk
+      if (scorerName === "—") continue;
 
-      const line =
-        `🥅 **${time}** ${teamPrefix}${scorerName}${tagTxt}${shotTxt}${scoreTxt}` +
-        `${assistsTxt}`;
-
-      pushLine(perKey, line);
+      pushLine(
+        perKey,
+        `🥅 **${time}** ${teamPrefix}${scorerName}${tagTxt}${shotTxt}${scoreTxt}${assistsTxt}`
+      );
       continue;
     }
 
-    // PENALTIES
-    if (tkey.includes("penalty")) {
+    if (isPenalty) {
       const { committed, drawn } = penaltyPlayersFromDetails(d);
       const commName = fmtPlayerNameById(committed, charMap, realMap);
 
@@ -474,25 +502,23 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
       const drawnName = drawn ? fmtPlayerNameById(drawn, charMap, realMap) : "";
       const drawnTxt = drawnName && drawnName !== "—" ? `\n↳ Drawn by: ${drawnName}` : "";
 
-      const line =
-        `🟨 **${time}** ${teamPrefix}${commName}: **${label}**${minsTxt}` +
-        `${drawnTxt}`;
+      // If no player attached, skip the generic "—: Penalty" spam
+      if (commName === "—") continue;
 
-      pushLine(perKey, line);
+      pushLine(
+        perKey,
+        `🟨 **${time}** ${teamPrefix}${commName}: **${label}**${minsTxt}${drawnTxt}`
+      );
       continue;
     }
   }
 
-  // return in order: 1,2,3,OT,SO,Other
-  const orderedKeys = [];
-  for (const k of periods.keys()) orderedKeys.push(k);
-
-  orderedKeys.sort((a, b) => {
+  // order: 1,2,3,OT,SO,Other
+  const orderedKeys = [...periods.keys()].sort((a, b) => {
     const rank = (x) => {
       if (x === 1) return 1;
       if (x === 2) return 2;
       if (x === 3) return 3;
-      if (x === 4) return 4;
       if (x === "OT") return 90;
       if (x === "SO") return 95;
       if (typeof x === "number") return 80 + x;
