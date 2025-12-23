@@ -76,7 +76,7 @@ async function nhlLanding(gameId) {
 }
 
 // -------------------- Discord webhook (forum threads + embeds) --------------------
-async function postWebhook({ content = "", embeds = [], username = "HOCKEYHOOK", threadId = "", threadName = "" }) {
+async function postWebhook({ content = "", embeds = [], username = "ESPN", threadId = "", threadName = "" }) {
   if (!WEBHOOK_URL) throw new Error("Missing DISCORD_WEBHOOK_URL");
 
   const url = new URL(WEBHOOK_URL);
@@ -338,7 +338,6 @@ function starsEmbed({ stars, charMap, realMap }) {
     const s = stars[i];
     const pid = starPlayerId(s);
 
-    // prefer ID-based mapping (lets us replace with character names)
     let display = pid ? fmtPlayerNameById(pid, charMap, realMap) : "";
     if (!display || display === "—") {
       const nm = starPlayerName(s);
@@ -346,7 +345,9 @@ function starsEmbed({ stars, charMap, realMap }) {
     }
 
     const team = starTeamAbbr(s);
-    lines.push(`⭐ **${i + 1}:** ${display}${team ? ` (${team})` : ""}`);
+
+    const starsIcon = "⭐".repeat(i + 1); // 1, 2, 3 stars
+    lines.push(`${starsIcon} ${display}${team ? ` (${team})` : ""}`);
   }
 
   return {
@@ -573,7 +574,7 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
 
       pushLine(
         perKey,
-        `🟨 **${time}** ${teamPrefix}${commName}: **${label}**${minsTxt}${drawnTxt}`
+        `**${time}** ${teamPrefix}${commName}: **${label}**${minsTxt}${drawnTxt}`
       );
       continue;
     }
@@ -675,8 +676,8 @@ async function main() {
 
   if (candidates.length === 0) {
     await postWebhook({
-      username: "HOCKEYHOOK",
-      embeds: [{ title: `🏒 HOCKEYHOOK — ${DATE}`, description: "No postable games found." }],
+      username: "ESPN",
+      embeds: [{ title: `🏒 ${DATE}`, description: "No postable games found." }],
     });
     return;
   }
@@ -720,7 +721,7 @@ async function main() {
     // 1) Create forum thread with header embed
     const threadName = `${DATE} • ${box.awayTeam.commonName.default} @ ${box.homeTeam.commonName.default} • ${gameId}`;
     const created = await postWebhook({
-      username: "HOCKEYHOOK",
+      username: "ESPN",
       threadName,
       embeds: [headerEmbed({ gameId, box })],
     });
@@ -743,7 +744,7 @@ async function main() {
     const embedBatches = chunkEmbedsForDiscord(allEmbeds);
     for (const batch of embedBatches) {
       await postWebhook({
-        username: "HOCKEYHOOK",
+        username: "ESPN",
         threadId,
         embeds: batch,
       });
@@ -754,7 +755,7 @@ async function main() {
     if (starsE) {
       await sleep(350);
       await postWebhook({
-        username: "HOCKEYHOOK",
+        username: "ESPN",
         threadId,
         embeds: [starsE],
       });
