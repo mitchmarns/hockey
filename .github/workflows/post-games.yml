@@ -1,33 +1,36 @@
-name: Post NHL games (character mirror)
+name: Post Games
 
 on:
   workflow_dispatch:
     inputs:
       date:
-        description: "YYYY-MM-DD (leave blank for today UTC)"
+        description: "YYYY-MM-DD (UTC). Leave blank for today."
         required: false
-        default: ""
-  schedule:
-    # Runs every day at 06:15 UTC (~10:15pm PT). Adjust if you want.
-    - cron: "15 6 * * *"
+      force_all:
+        description: "true = post even if games not final"
+        required: false
+        default: "false"
+      ignore_posted:
+        description: "true = repost even if already posted"
+        required: false
+        default: "false"
 
 jobs:
   post:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      - name: Check webhook env (safe)
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: node -e "console.log('Webhook set?', !!process.env.DISCORD_WEBHOOK_URL)"
-
       - name: Run post-games
+        run: node post-games.js
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           DATE: ${{ inputs.date }}
-        run: node post-games.js
+          FORCE_ALL: ${{ inputs.force_all }}
+          IGNORE_POSTED: ${{ inputs.ignore_posted }}
