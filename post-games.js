@@ -126,7 +126,7 @@ function statLine(p) {
   const sog = p.sog ?? p.shots ?? 0;
   const hits = p.hits ?? 0;
   const toi = p.toi ?? "";
-  return `${g}G ${a}A ${pts}P | ${sog} SOG | ${hits} H | ${pim} PIM | TOI ${toi}`;
+  return `${g}-${a}-${pts} | ${sog} SOG | ${hits} H | ${pim} PIM | ${toi}`;
 }
 
 /**
@@ -205,7 +205,9 @@ function clip(s, max) {
 function teamEmbed({ teamName, abbr, rosters, rl }) {
   const charTeam = rosters[abbr] || null;
 
-  const fLines = [];
+  const fields = [];
+
+  // --- Forwards: L1-L4 (two-column)
   for (let i = 0; i < 4; i++) {
     const trio = rl?.F?.[i] ?? [null, null, null];
     const ch = charTeam?.F?.[i] ?? { LW: "", C: "", RW: "" };
@@ -213,18 +215,21 @@ function teamEmbed({ teamName, abbr, rosters, rl }) {
     const lw = trio[0], c = trio[1], rw = trio[2];
 
     const lwName = charOrReal(ch.LW, realName(lw));
-    const cName = charOrReal(ch.C, realName(c));
+    const cName  = charOrReal(ch.C,  realName(c));
     const rwName = charOrReal(ch.RW, realName(rw));
 
-    fLines.push(
-      `**L${i + 1}**\n` +
-      `• LW: **${lwName}**${lw ? ` — ${statLine(lw)}` : ""}\n` +
-      `• C: **${cName}**${c ? ` — ${statLine(c)}` : ""}\n` +
-      `• RW: **${rwName}**${rw ? ` — ${statLine(rw)}` : ""}`
-    );
+    const val =
+      `• **LW:** ${lwName}${lw ? ` — ${statLine(lw)}` : ""}\n` +
+      `• **C:** ${cName}${c ? ` — ${statLine(c)}` : ""}\n` +
+      `• **RW:** ${rwName}${rw ? ` — ${statLine(rw)}` : ""}`;
+
+    fields.push({ name: `L${i + 1}`, value: val || "—", inline: true });
   }
 
-  const dLines = [];
+  // spacer so Defense starts on a new row (Discord trick)
+  fields.push({ name: "\u200B", value: "\u200B", inline: false });
+
+  // --- Defense: D1-D3 (two-column-ish)
   for (let i = 0; i < 3; i++) {
     const pair = rl?.D?.[i] ?? [null, null];
     const ch = charTeam?.D?.[i] ?? { LD: "", RD: "" };
@@ -234,46 +239,39 @@ function teamEmbed({ teamName, abbr, rosters, rl }) {
     const d1Name = charOrReal(ch.LD, realName(d1));
     const d2Name = charOrReal(ch.RD, realName(d2));
 
-    dLines.push(
-      `**D${i + 1}**\n` +
-      `• LD: **${d1Name}**${d1 ? ` — ${statLine(d1)}` : ""}\n` +
-      `• RD: **${d2Name}**${d2 ? ` — ${statLine(d2)}` : ""}`
-    );
+    const val =
+      `• **LD:** ${d1Name}${d1 ? ` — ${statLine(d1)}` : ""}\n` +
+      `• **RD:** ${d2Name}${d2 ? ` — ${statLine(d2)}` : ""}`;
+
+    fields.push({ name: `D${i + 1}`, value: val || "—", inline: true });
   }
 
+  fields.push({ name: "\u200B", value: "\u200B", inline: false });
+
+  // --- Goalies (single field)
   const gLines = [];
   for (let i = 0; i < 2; i++) {
     const gg = rl?.G?.[i] ?? null;
     const ch = charTeam?.G?.[i] ?? { G: "" };
-
     const gName = charOrReal(ch.G, realName(gg));
 
     if (!gg) {
-      gLines.push(`• G${i + 1}: **${gName}**`);
+      gLines.push(`• **G${i + 1}:** ${gName}`);
       continue;
     }
 
-    const sv = gg.savePctg != null ? `${Math.round(gg.savePctg * 1000) / 10}%` : "";
+    const sv = gg.savePctg != null ? `${Math.round(gg.savePctg * 1000) / 10}%` : "—";
     const ga = gg.goalsAgainst != null ? gg.goalsAgainst : "—";
-    gLines.push(`• G${i + 1}: **${gName}** — SV% ${sv || "—"} | GA ${ga}`);
+    gLines.push(`• **G${i + 1}:** ${gName} — SV% ${sv} | GA ${ga}`);
   }
 
-  const note = charTeam
-    ? ""
-    : `\n_No character roster for ${abbr}; showing real players._`;
+  if (!charTeam) gLines.push(`\n_No character roster for ${abbr}; showing real players._`);
 
-  // Embed field values are max 1024 chars each, so clip defensively.
-  const forwardsVal = clip(fLines.join("\n\n"), 1024);
-  const defenseVal = clip(dLines.join("\n\n"), 1024);
-  const goaliesVal = clip(gLines.join("\n") + note, 1024);
+  fields.push({ name: "Goalies", value: gLines.join("\n") || "—", inline: false });
 
   return {
-    title: `${teamName} — Character Mirror`,
-    fields: [
-      { name: "Forwards", value: forwardsVal || "—", inline: false },
-      { name: "Defense", value: defenseVal || "—", inline: false },
-      { name: "Goalies", value: goaliesVal || "—", inline: false },
-    ],
+    title: `${teamName}`,
+    fields,
   };
 }
 
