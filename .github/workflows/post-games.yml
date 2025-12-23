@@ -6,11 +6,10 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: "YYYY-MM-DD (UTC). If set, run ONLY this date (for testing/backfills)."
+        description: "YYYY-MM-DD (UTC). If set, ONLY this date will run."
         required: false
-        default: ""
       force_all:
-        description: "true = post even if games not final"
+        description: "true = post even if not final"
         required: false
         default: "false"
       ignore_posted:
@@ -18,10 +17,12 @@ on:
         required: false
         default: "false"
 
+permissions:
+  contents: write
+
 jobs:
   post:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,13 +36,12 @@ jobs:
           node-version: "20"
 
       - name: Set UTC dates
-        id: dates
         run: |
           echo "TODAY_UTC=$(date -u +%F)" >> $GITHUB_ENV
           echo "YESTERDAY_UTC=$(date -u -d 'yesterday' +%F)" >> $GITHUB_ENV
 
-      # If a manual date is provided, ONLY run that date (good for testing/backfills)
-      - name: Run post-games (manual date)
+      # If manually dispatched with a date, run ONLY that date
+      - name: Run for manual date (workflow_dispatch)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.date != '' }}
         run: node post-games.js
         env:
@@ -50,8 +50,8 @@ jobs:
           FORCE_ALL: ${{ inputs.force_all }}
           IGNORE_POSTED: ${{ inputs.ignore_posted }}
 
-      # Otherwise (scheduled run OR manual run with no date), run yesterday + today
-      - name: Run post-games (yesterday UTC)
+      # Scheduled runs (or manual runs with no date): run yesterday then today
+      - name: Run yesterday (UTC)
         if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.date != '') }}
         run: node post-games.js
         env:
@@ -60,7 +60,7 @@ jobs:
           FORCE_ALL: "false"
           IGNORE_POSTED: "false"
 
-      - name: Run post-games (today UTC)
+      - name: Run today (UTC)
         if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.date != '') }}
         run: node post-games.js
         env:
@@ -74,7 +74,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Only commit if data/posted.json changed
           if [[ -n "$(git status --porcelain data/posted.json)" ]]; then
             git add data/posted.json
             git commit -m "Update posted game IDs"
