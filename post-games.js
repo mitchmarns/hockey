@@ -238,7 +238,6 @@ function buildCharMapForGame({ rosters, realLines, awayAbbr, homeAbbr }) {
     const rl = realLines?.[abbr];
     if (!charTeam || !rl) return;
 
-    // Forwards
     for (let i = 0; i < 4; i++) {
       const trio = rl.F?.[i] ?? [null, null, null];
       const ch = charTeam.F?.[i] ?? { LW: "", C: "", RW: "" };
@@ -247,7 +246,6 @@ function buildCharMapForGame({ rosters, realLines, awayAbbr, homeAbbr }) {
       addIf(trio[2], ch.RW);
     }
 
-    // Defense
     for (let i = 0; i < 3; i++) {
       const pair = rl.D?.[i] ?? [null, null];
       const ch = charTeam.D?.[i] ?? { LD: "", RD: "" };
@@ -255,7 +253,6 @@ function buildCharMapForGame({ rosters, realLines, awayAbbr, homeAbbr }) {
       addIf(pair[1], ch.RD);
     }
 
-    // Goalies
     for (let i = 0; i < 2; i++) {
       const g = rl.G?.[i] ?? null;
       const ch = charTeam.G?.[i] ?? { G: "" };
@@ -345,8 +342,7 @@ function starsEmbed({ stars, charMap, realMap }) {
     }
 
     const team = starTeamAbbr(s);
-
-    const starsIcon = "⭐".repeat(i + 1); // 1, 2, 3 stars
+    const starsIcon = "⭐".repeat(i + 1); // 1, 2, 3
     lines.push(`${starsIcon} ${display}${team ? ` (${team})` : ""}`);
   }
 
@@ -364,7 +360,6 @@ function extractPlays(pbp) {
     pbp?.liveData?.plays?.allPlays ??
     [];
 
-  // Ensure chronological order
   return [...plays].sort((a, b) => {
     const ao = a?.sortOrder ?? a?.eventId ?? a?.about?.eventIdx ?? 0;
     const bo = b?.sortOrder ?? b?.eventId ?? b?.about?.eventIdx ?? 0;
@@ -391,13 +386,11 @@ function strengthTag(details) {
     .trim();
 
   if (!raw) return "";
-
   if (raw === "pp" || raw.includes("power")) return "PP";
   if (raw === "sh" || raw.includes("short")) return "SH";
   if (raw === "ev" || raw.includes("even")) return "EV";
   if (raw === "ps" || raw.includes("penaltyshot")) return "PS";
   if (/^\d+v\d+$/.test(raw)) return raw.toUpperCase();
-
   return raw.toUpperCase();
 }
 
@@ -421,7 +414,6 @@ function teamAbbrFromPlay(pl, box, awayAbbr, homeAbbr) {
   return "";
 }
 
-// --- goal extraction (robust-ish)
 function goalPlayersFromDetails(d) {
   const scorer =
     d.scoringPlayerId ??
@@ -449,7 +441,6 @@ function shotTypeFromDetails(d) {
   return titleize(d.shotType ?? d.shotTypeDescKey ?? d.shotTypeCode ?? d.scoringShotType ?? "");
 }
 
-// --- penalty extraction (robust-ish)
 function penaltyPlayersFromDetails(d) {
   const committed =
     d.committedByPlayerId ??
@@ -476,9 +467,8 @@ function penaltyMinsFromDetails(d) {
   return d.duration ?? d.penaltyMinutes ?? d.minutes ?? null;
 }
 
-// Build period -> [strings] with goals+penalties in play order
 function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, realMap }) {
-  const periods = new Map(); // key -> { label, lines: [] }
+  const periods = new Map();
 
   const pushLine = (per, line) => {
     const key = per ?? "Other";
@@ -492,7 +482,6 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
     periods.get(key).lines.push(line);
   };
 
-  // Track score ourselves (so we can show Score after goals)
   let curAway = 0;
   let curHome = 0;
 
@@ -514,16 +503,13 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
     const abbr = teamAbbrFromPlay(pl, box, awayAbbr, homeAbbr);
     const teamPrefix = abbr ? `**${abbr}** ` : "";
 
-    // ✅ ONLY real GOALS (avoid shot events)
     const isGoal =
       key === "goal" ||
       (key.includes("goal") && !key.includes("shot") && !key.includes("shot-on-goal") && !key.includes("shotongoal"));
 
-    // ✅ ONLY real PENALTIES
     const isPenalty = key === "penalty" || key.includes("penalty");
 
     if (isGoal) {
-      // update score (prefer feed score if present)
       if (d.awayScore != null && d.homeScore != null) {
         curAway = Number(d.awayScore);
         curHome = Number(d.homeScore);
@@ -533,7 +519,6 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
       }
 
       const { scorer, a1, a2 } = goalPlayersFromDetails(d);
-
       const scorerName = fmtPlayerNameById(scorer, charMap, realMap);
       if (scorerName === "—") continue;
 
@@ -551,18 +536,13 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
       const assists = [a1Name, a2Name].filter((x) => x && x !== "—");
       const assistsTxt = assists.length ? `\n↳ Assists: ${assists.join(", ")}` : "";
 
-      pushLine(
-        perKey,
-        `🥅 **${time}** ${teamPrefix}${scorerName}${tagTxt}${shotTxt}${scoreTxt}${assistsTxt}`
-      );
+      pushLine(perKey, `🥅 **${time}** ${teamPrefix}${scorerName}${tagTxt}${shotTxt}${scoreTxt}${assistsTxt}`);
       continue;
     }
 
     if (isPenalty) {
       const { committed, drawn } = penaltyPlayersFromDetails(d);
       const commName = fmtPlayerNameById(committed, charMap, realMap);
-
-      // skip generic spam
       if (commName === "—") continue;
 
       const label = penaltyLabelFromDetails(d);
@@ -572,15 +552,11 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
       const drawnName = drawn ? fmtPlayerNameById(drawn, charMap, realMap) : "";
       const drawnTxt = drawnName && drawnName !== "—" ? `\n↳ Drawn by: ${drawnName}` : "";
 
-      pushLine(
-        perKey,
-        `**${time}** ${teamPrefix}${commName}: **${label}**${minsTxt}${drawnTxt}`
-      );
+      pushLine(perKey, `**${time}** ${teamPrefix}${commName}: **${label}**${minsTxt}${drawnTxt}`);
       continue;
     }
   }
 
-  // order: 1,2,3,OT,SO,Other
   const orderedKeys = [...periods.keys()].sort((a, b) => {
     const rank = (x) => {
       if (x === 1) return 1;
@@ -598,20 +574,18 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
 }
 
 function chunkEmbedsForDiscord(embeds) {
-  // Discord allows up to 10 embeds per message
   const chunks = [];
   for (let i = 0; i < embeds.length; i += 10) chunks.push(embeds.slice(i, i + 10));
   return chunks;
 }
 
 function chunkDescriptionLines(lines, maxLen = 3800) {
-  // Keep safe under 4096; reserve a little.
   const out = [];
   let cur = [];
   let curLen = 0;
 
   for (const ln of lines) {
-    const addLen = ln.length + 2; // newline spacing
+    const addLen = ln.length + 2;
     if (curLen + addLen > maxLen && cur.length) {
       out.push(cur);
       cur = [];
@@ -637,12 +611,7 @@ function headerEmbed({ gameId, box }) {
 
 function periodEmbeds({ periodLabel, lines }) {
   if (!lines || !lines.length) {
-    return [
-      {
-        title: `${periodLabel}`,
-        description: "_No goals or penalties recorded._",
-      },
-    ];
+    return [{ title: `${periodLabel}`, description: "_No goals or penalties recorded._" }];
   }
 
   const chunks = chunkDescriptionLines(lines, 3800);
@@ -670,15 +639,12 @@ async function main() {
   const games = score.games ?? [];
   const candidates = FORCE_ALL ? games : games.filter(isFinalGame);
 
-  console.log(
-    `Date=${DATE} games=${games.length} candidates=${candidates.length} FORCE_ALL=${FORCE_ALL} IGNORE_POSTED=${IGNORE_POSTED}`
-  );
+  console.log(`Date=${DATE} games=${games.length} candidates=${candidates.length} FORCE_ALL=${FORCE_ALL} IGNORE_POSTED=${IGNORE_POSTED}`);
 
+  // ✅ FIX: Forum webhooks MUST have thread_name or thread_id.
+  // When there are no final games yet, just exit quietly (no posting).
   if (candidates.length === 0) {
-    await postWebhook({
-      username: "ESPN",
-      embeds: [{ title: `🏒 ${DATE}`, description: "No postable games found." }],
-    });
+    console.log(`No postable games found for ${DATE}. Exiting.`);
     return;
   }
 
@@ -726,8 +692,11 @@ async function main() {
       embeds: [headerEmbed({ gameId, box })],
     });
 
-    // Forum webhook response: channel_id is usually the created thread/channel
     const threadId = created?.channel_id || created?.id;
+    if (!threadId) {
+      throw new Error(`Could not determine forum threadId from webhook response for gameId=${gameId}`);
+    }
+
     console.log("Created thread:", { threadId, gameId });
 
     // 2) Build all period embeds, then post in batches of 10
@@ -743,22 +712,14 @@ async function main() {
 
     const embedBatches = chunkEmbedsForDiscord(allEmbeds);
     for (const batch of embedBatches) {
-      await postWebhook({
-        username: "ESPN",
-        threadId,
-        embeds: batch,
-      });
+      await postWebhook({ username: "ESPN", threadId, embeds: batch });
       await sleep(300);
     }
 
     // 3) Post 3 Stars at the end (if present)
     if (starsE) {
       await sleep(350);
-      await postWebhook({
-        username: "ESPN",
-        threadId,
-        embeds: [starsE],
-      });
+      await postWebhook({ username: "ESPN", threadId, embeds: [starsE] });
     }
 
     if (!IGNORE_POSTED) {
@@ -766,7 +727,7 @@ async function main() {
       await writeJson(POSTED_PATH, posted);
     }
 
-    await sleep(650); // pause between games
+    await sleep(650);
   }
 
   console.log("Done.");
