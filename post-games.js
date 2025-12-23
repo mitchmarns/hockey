@@ -194,8 +194,7 @@ function renderMirroredGame({ gameId, box, rosters, realLines, boxSkaters }) {
   for (const abbr of [awayAbbr, homeAbbr]) {
     const teamName = boxSkaters[abbr]?.teamName ?? abbr;
 
-    const rosterKey = findRosterKeyForAbbr(rosters, abbr, teamName);
-    const charTeam = rosterKey ? rosters[rosterKey] : null;
+    const charTeam = rosters[abbr] || null;
 
     const rl = realLines[abbr];
 
