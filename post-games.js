@@ -228,7 +228,7 @@ function renderMirroredGame({ gameId, box, rosters, realLines, boxSkaters }) {
       const gg = rl?.G?.[i] ?? null;
       const ch = charTeam?.G?.[i] ?? { G: "" };
 
-      const gReal = realName(lw);
+      const gReal = realName(gg);
 
       if (!gg) {
         blocks.push(`G${i + 1}: ${charOrReal(ch.G, gReal)} ⇐ —`);
