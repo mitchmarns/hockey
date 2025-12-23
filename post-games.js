@@ -1,4 +1,8 @@
-// post-games.js (Node 20+; CommonJS) — Forum threads + Embeds + bold character names + penalty details
+// post-games.js (Node 20+; CommonJS) — Forum threads + Play-by-Play embeds (Goals + Penalties by Period)
+// - Uses rosters.json to "mirror" real NHL player IDs -> your character names (bolded)
+// - Posts one forum thread per game, then period-by-period embeds inside the thread
+// - No SOG/Hits/Lineups (pure play-by-play: goals + penalties)
+
 const fs = require("node:fs/promises");
 const path = require("node:path");
 
@@ -12,30 +16,22 @@ const IGNORE_POSTED = String(process.env.IGNORE_POSTED || "false").toLowerCase()
 const ROSTERS_PATH = path.join(process.cwd(), "rosters.json");
 const POSTED_PATH = path.join(process.cwd(), "data", "posted.json");
 
+// -------------------- utils --------------------
 function isBlank(v) {
   return v === undefined || v === null || `${v}`.trim() === "";
 }
 
-function pickName(charName, realName) {
-  const c = (charName ?? "").toString().trim();
-  if (c) return { name: c, isChar: true };
-
-  const r = (realName ?? "").toString().trim();
-  if (r) return { name: r, isChar: false };
-
-  return { name: "—", isChar: false };
+function titleize(s) {
+  return (s ?? "")
+    .toString()
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (m) => m.toUpperCase())
+    .trim();
 }
 
-function fmtName(picked) {
-  // bold ONLY character names
-  return picked.isChar && picked.name !== "—" ? `**${picked.name}**` : picked.name;
-}
-
-function toiToSeconds(toi) {
-  const s = (toi ?? "").toString().trim();
-  const m = s.match(/^(\d+):(\d{2})$/);
-  if (!m) return 0;
-  return Number(m[1]) * 60 + Number(m[2]);
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 async function readJson(filePath, fallback) {
@@ -51,6 +47,7 @@ async function writeJson(filePath, obj) {
   await fs.writeFile(filePath, JSON.stringify(obj, null, 2), "utf8");
 }
 
+// -------------------- NHL calls --------------------
 async function nhlScore(date) {
   const url = `https://api-web.nhle.com/v1/score/${date}`;
   const res = await fetch(url, { headers: { Accept: "application/json" } });
@@ -72,15 +69,7 @@ async function nhlPlayByPlay(gameId) {
   return res.json();
 }
 
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-/**
- * Webhook execute:
- * - forum: provide thread_name (create new forum post/thread) OR thread_id (post inside it)
- * - supports embeds
- */
+// -------------------- Discord webhook (forum threads + embeds) --------------------
 async function postWebhook({ content = "", embeds = [], username = "HOCKEYHOOK", threadId = "", threadName = "" }) {
   if (!WEBHOOK_URL) throw new Error("Missing DISCORD_WEBHOOK_URL");
 
@@ -94,7 +83,7 @@ async function postWebhook({ content = "", embeds = [], username = "HOCKEYHOOK",
   if (!isBlank(threadName)) body.thread_name = threadName; // forum-only
 
   // Rate-limit retry loop (handles 429 from Discord)
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt < 6; attempt++) {
     const res = await fetch(url.toString(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -110,7 +99,7 @@ async function postWebhook({ content = "", embeds = [], username = "HOCKEYHOOK",
     let retryAfterMs = 1000;
     try {
       const j = await res.json();
-      retryAfterMs = Math.ceil((j.retry_after ?? 1) * 1000) + 150;
+      retryAfterMs = Math.ceil((j.retry_after ?? 1) * 1000) + 200;
     } catch {
       retryAfterMs = 1000;
     }
@@ -120,6 +109,7 @@ async function postWebhook({ content = "", embeds = [], username = "HOCKEYHOOK",
   throw new Error("Discord webhook failed: too many rate limits.");
 }
 
+// -------------------- Boxscore helpers (for name + char mapping) --------------------
 function realName(p) {
   if (!p) return "";
   if (p.name && typeof p.name === "object") {
@@ -132,94 +122,20 @@ function realName(p) {
   return `${first} ${last}`.trim();
 }
 
-function statLine(p) {
-  if (!p) return "";
-  const g = p.goals ?? 0;
-  const a = p.assists ?? 0;
-  const pts = p.points ?? (g + a);
-  const pim = p.pim ?? 0;
-  const sog = p.sog ?? p.shots ?? 0;
-  const hits = p.hits ?? 0;
-  const toi = p.toi ?? "";
-  return `G ${g} | A ${a} | PTS ${pts} | PIM ${pim} | SOG ${sog} | H ${hits} | TOI ${toi}`;
-}
-
-function titleize(s) {
-  return (s ?? "")
-    .toString()
-    .replace(/_/g, " ")
-    .toLowerCase()
-    .replace(/\b\w/g, (m) => m.toUpperCase())
-    .trim();
+function toiToSeconds(toi) {
+  const s = (toi ?? "").toString().trim();
+  const m = s.match(/^(\d+):(\d{2})$/);
+  if (!m) return 0;
+  return Number(m[1]) * 60 + Number(m[2]);
 }
 
 function playerIdOf(p) {
   return p?.playerId ?? p?.id ?? p?.player?.id ?? null;
 }
 
-// Build: Map(playerId => [{label, mins, period, time}])
-function buildPenaltyMap(pbp) {
-  const plays =
-    pbp?.plays ??
-    pbp?.gamecenter?.plays ??
-    pbp?.liveData?.plays?.allPlays ??
-    [];
-
-  const map = new Map();
-
-  for (const pl of plays) {
-    const type = (pl?.typeDescKey ?? pl?.result?.eventTypeId ?? "").toString().toLowerCase();
-    if (!type.includes("penalty")) continue;
-
-    const d = pl?.details ?? pl?.result ?? {};
-    const pid =
-      d.committedByPlayerId ??
-      d.penaltyPlayerId ??
-      d.servedByPlayerId ??
-      d.playerId ??
-      null;
-
-    if (!pid) continue;
-
-    const mins = d.duration ?? d.penaltyMinutes ?? d.minutes ?? null;
-
-    const label =
-      titleize(d.descKey) ||
-      titleize(d.typeCode) ||
-      titleize(d.penaltyType) ||
-      "Penalty";
-
-    const period = pl?.periodDescriptor?.number ?? pl?.about?.period ?? null;
-
-    const time =
-      pl?.timeInPeriod ??
-      pl?.about?.periodTime ??
-      pl?.timeRemaining ??
-      "";
-
-    const entry = { label, mins, period, time };
-
-    if (!map.has(pid)) map.set(pid, []);
-    map.get(pid).push(entry);
-  }
-
-  return map;
-}
-
-function formatPenaltyShort(list, maxItems = 2) {
-  if (!list || !list.length) return "";
-  const shown = list.slice(0, maxItems).map((x) => {
-    const m = x.mins != null ? ` (${x.mins})` : "";
-    const t = x.period ? `P${x.period} ${x.time || ""}`.trim() : "";
-    return `${x.label}${m}${t ? ` @ ${t}` : ""}`;
-  });
-  const more = list.length > maxItems ? ` +${list.length - maxItems} more` : "";
-  return `⚠️ ${shown.join(", ")}${more}`;
-}
-
 /**
  * ✅ IMPORTANT:
- * Players are under box.playerByGameStats.awayTeam/homeTeam
+ * Players are under box.playerByGameStats.awayTeam/homeTeam (not nested in box.awayTeam)
  */
 function extractSkatersFromBoxscore(box) {
   const out = {};
@@ -239,20 +155,14 @@ function extractSkatersFromBoxscore(box) {
   return out;
 }
 
-// TOI-based approximation of lines
+// TOI-based approximation of lines (only used to map real IDs -> your roster slots)
 function buildRealLinesTOIFallback(boxSkaters) {
   const linesByTeam = {};
 
   for (const [abbr, group] of Object.entries(boxSkaters)) {
-    const forwardsAll = [...(group.forwards ?? [])].sort(
-      (a, b) => toiToSeconds(b.toi) - toiToSeconds(a.toi)
-    );
-    const defenseAll = [...(group.defense ?? [])].sort(
-      (a, b) => toiToSeconds(b.toi) - toiToSeconds(a.toi)
-    );
-    const goaliesAll = [...(group.goalies ?? [])].sort(
-      (a, b) => toiToSeconds(b.toi) - toiToSeconds(a.toi)
-    );
+    const forwardsAll = [...(group.forwards ?? [])].sort((a, b) => toiToSeconds(b.toi) - toiToSeconds(a.toi));
+    const defenseAll = [...(group.defense ?? [])].sort((a, b) => toiToSeconds(b.toi) - toiToSeconds(a.toi));
+    const goaliesAll = [...(group.goalies ?? [])].sort((a, b) => toiToSeconds(b.toi) - toiToSeconds(a.toi));
 
     const getPos = (p) => (p?.position ?? p?.positionCode ?? "").toString().toUpperCase().trim();
 
@@ -285,101 +195,369 @@ function buildRealLinesTOIFallback(boxSkaters) {
   return linesByTeam;
 }
 
-function teamEmbed({ teamName, abbr, rosters, rl, penaltyMap }) {
-  const charTeam = rosters[abbr] || null;
-  const fields = [];
+// Build real-name lookup: playerId -> "First Last"
+function buildRealNameMap(boxSkaters) {
+  const map = new Map();
 
-  // --- Forwards: L1-L4 (two-column)
-  for (let i = 0; i < 4; i++) {
-    const trio = rl?.F?.[i] ?? [null, null, null];
-    const ch = charTeam?.F?.[i] ?? { LW: "", C: "", RW: "" };
+  const add = (p) => {
+    const id = playerIdOf(p);
+    if (!id) return;
+    const nm = realName(p);
+    if (nm) map.set(id, nm);
+  };
 
-    const lw = trio[0], c = trio[1], rw = trio[2];
+  for (const grp of Object.values(boxSkaters)) {
+    for (const p of grp.forwards ?? []) add(p);
+    for (const p of grp.defense ?? []) add(p);
+    for (const p of grp.goalies ?? []) add(p);
+  }
 
-    const lwPick = pickName(ch.LW, realName(lw));
-    const cPick  = pickName(ch.C,  realName(c));
-    const rwPick = pickName(ch.RW, realName(rw));
+  return map;
+}
 
-    const lwPen = formatPenaltyShort(penaltyMap?.get(playerIdOf(lw)));
-    const cPen  = formatPenaltyShort(penaltyMap?.get(playerIdOf(c)));
-    const rwPen = formatPenaltyShort(penaltyMap?.get(playerIdOf(rw)));
+// Map: playerId -> { name, isChar }
+function buildCharMapForGame({ rosters, realLines, awayAbbr, homeAbbr }) {
+  const map = new Map();
 
-    const val =
-      `• **LW:** ${fmtName(lwPick)}${lw ? ` — ${statLine(lw)}` : ""}${lwPen ? `\n  ${lwPen}` : ""}\n` +
-      `• **C:** ${fmtName(cPick)}${c ? ` — ${statLine(c)}` : ""}${cPen ? `\n  ${cPen}` : ""}\n` +
-      `• **RW:** ${fmtName(rwPick)}${rw ? ` — ${statLine(rw)}` : ""}${rwPen ? `\n  ${rwPen}` : ""}`;
+  const addIf = (playerObj, charName) => {
+    const c = (charName ?? "").toString().trim();
+    if (!c) return;
+    const id = playerIdOf(playerObj);
+    if (!id) return;
+    map.set(id, { name: c, isChar: true });
+  };
 
-    fields.push({ name: `L${i + 1}`, value: val || "—", inline: true });
+  const applyTeam = (abbr) => {
+    const charTeam = rosters?.[abbr];
+    const rl = realLines?.[abbr];
+    if (!charTeam || !rl) return;
 
-    // row break after L2 and after L4
-    if (i === 1 || i === 3) {
-      fields.push({ name: "\u200B", value: "\u200B", inline: false });
+    // Forwards
+    for (let i = 0; i < 4; i++) {
+      const trio = rl.F?.[i] ?? [null, null, null];
+      const ch = charTeam.F?.[i] ?? { LW: "", C: "", RW: "" };
+      addIf(trio[0], ch.LW);
+      addIf(trio[1], ch.C);
+      addIf(trio[2], ch.RW);
     }
-  }
 
-  // spacer so Defense starts on a new row
-  fields.push({ name: "\u200B", value: "\u200B", inline: false });
+    // Defense
+    for (let i = 0; i < 3; i++) {
+      const pair = rl.D?.[i] ?? [null, null];
+      const ch = charTeam.D?.[i] ?? { LD: "", RD: "" };
+      addIf(pair[0], ch.LD);
+      addIf(pair[1], ch.RD);
+    }
 
-  // --- Defense: D1-D3
-  for (let i = 0; i < 3; i++) {
-    const pair = rl?.D?.[i] ?? [null, null];
-    const ch = charTeam?.D?.[i] ?? { LD: "", RD: "" };
+    // Goalies
+    for (let i = 0; i < 2; i++) {
+      const g = rl.G?.[i] ?? null;
+      const ch = charTeam.G?.[i] ?? { G: "" };
+      addIf(g, ch.G);
+    }
+  };
 
-    const d1 = pair[0], d2 = pair[1];
+  applyTeam(awayAbbr);
+  applyTeam(homeAbbr);
 
-    const d1Pick = pickName(ch.LD, realName(d1));
-    const d2Pick = pickName(ch.RD, realName(d2));
+  return map;
+}
 
-    const d1Pen = formatPenaltyShort(penaltyMap?.get(playerIdOf(d1)));
-    const d2Pen = formatPenaltyShort(penaltyMap?.get(playerIdOf(d2)));
+function fmtPlayerNameById(playerId, charMap, realMap) {
+  if (!playerId) return "—";
+  const ch = charMap?.get(playerId);
+  if (ch?.name) return `**${ch.name}**`;
+  const rn = realMap?.get(playerId);
+  return rn || "—";
+}
 
-    const val =
-      `• **LD:** ${fmtName(d1Pick)}${d1 ? ` — ${statLine(d1)}` : ""}${d1Pen ? `\n  ${d1Pen}` : ""}\n` +
-      `• **RD:** ${fmtName(d2Pick)}${d2 ? ` — ${statLine(d2)}` : ""}${d2Pen ? `\n  ${d2Pen}` : ""}`;
+// -------------------- Play-by-play parsing --------------------
+function extractPlays(pbp) {
+  return (
+    pbp?.plays ??
+    pbp?.gamecenter?.plays ??
+    pbp?.liveData?.plays?.allPlays ??
+    []
+  );
+}
 
-    fields.push({ name: `D${i + 1}`, value: val || "—", inline: true });
-    if (i === 1) fields.push({ name: "\u200B", value: "\u200B", inline: false });
-  }
+function playTypeKey(pl) {
+  return (pl?.typeDescKey ?? pl?.result?.eventTypeId ?? pl?.result?.event ?? "").toString().toLowerCase();
+}
 
-  fields.push({ name: "\u200B", value: "\u200B", inline: false });
+function periodNumber(pl) {
+  return pl?.periodDescriptor?.number ?? pl?.about?.period ?? null;
+}
 
-  // --- Goalies (single field)
-  const gLines = [];
-  for (let i = 0; i < 2; i++) {
-    const gg = rl?.G?.[i] ?? null;
-    const ch = charTeam?.G?.[i] ?? { G: "" };
+function timeInPeriod(pl) {
+  // Prefer timeInPeriod; fallback to periodTime
+  return (pl?.timeInPeriod ?? pl?.about?.periodTime ?? "").toString();
+}
 
-    const gPick = pickName(ch.G, realName(gg));
-    const gName = fmtName(gPick);
+function strengthTag(details) {
+  const raw = (details?.situationCode ?? details?.strength ?? details?.strengthCode ?? details?.eventStrength ?? details?.scoringStrength ?? "")
+    .toString()
+    .toLowerCase()
+    .trim();
 
-    if (!gg) {
-      gLines.push(`• **G${i + 1}:** ${gName}`);
+  // Common-ish codes (varies): "pp", "sh", "ev", "ps", "5v4", "4v5", "5v5"
+  if (!raw) return "";
+
+  if (raw === "pp" || raw.includes("power")) return "PP";
+  if (raw === "sh" || raw.includes("short")) return "SH";
+  if (raw === "ev" || raw.includes("even")) return "EV";
+  if (raw === "ps" || raw.includes("penaltyshot")) return "PS";
+
+  // If it's like "5v4"
+  if (/^\d+v\d+$/.test(raw)) return raw.toUpperCase();
+
+  return raw.toUpperCase();
+}
+
+function teamAbbrFromPlay(pl, box, awayAbbr, homeAbbr) {
+  const d = pl?.details ?? pl?.result ?? {};
+  const ab =
+    d.eventOwnerTeamAbbrev ??
+    d.teamAbbrev ??
+    d.penaltyTeamAbbrev ??
+    d.scoringTeamAbbrev ??
+    null;
+
+  if (ab) return ab.toString().toUpperCase().trim();
+
+  // Sometimes there's a team id
+  const tid = d.eventOwnerTeamId ?? d.teamId ?? d.ownerTeamId ?? d.scoringTeamId ?? null;
+  const awayId = box?.awayTeam?.id ?? null;
+  const homeId = box?.homeTeam?.id ?? null;
+  if (tid && awayId && tid === awayId) return awayAbbr;
+  if (tid && homeId && tid === homeId) return homeAbbr;
+
+  return "";
+}
+
+function scoreAfterPlay(pl, box) {
+  const d = pl?.details ?? pl?.result ?? {};
+  const a = d.awayScore ?? d.goalsAway ?? pl?.awayScore ?? null;
+  const h = d.homeScore ?? d.goalsHome ?? pl?.homeScore ?? null;
+  if (a != null && h != null) return `${a}–${h}`;
+
+  // last fallback: box final
+  const fa = box?.awayTeam?.score;
+  const fh = box?.homeTeam?.score;
+  if (fa != null && fh != null) return `${fa}–${fh}`;
+
+  return "";
+}
+
+// --- goal extraction (robust-ish)
+function goalPlayersFromDetails(d) {
+  const scorer =
+    d.scoringPlayerId ??
+    d.scorerPlayerId ??
+    d.scorerId ??
+    d.playerId ??
+    null;
+
+  const a1 =
+    d.assist1PlayerId ??
+    d.assistOnePlayerId ??
+    d.primaryAssistPlayerId ??
+    null;
+
+  const a2 =
+    d.assist2PlayerId ??
+    d.assistTwoPlayerId ??
+    d.secondaryAssistPlayerId ??
+    null;
+
+  return { scorer, a1, a2 };
+}
+
+function shotTypeFromDetails(d) {
+  return titleize(d.shotType ?? d.shotTypeDescKey ?? d.shotTypeCode ?? d.scoringShotType ?? "");
+}
+
+// --- penalty extraction (robust-ish)
+function penaltyPlayersFromDetails(d) {
+  const committed =
+    d.committedByPlayerId ??
+    d.penaltyPlayerId ??
+    d.playerId ??
+    d.servedByPlayerId ?? // sometimes (bench minor)
+    null;
+
+  const drawn =
+    d.drawnByPlayerId ??
+    d.drawnBy ??
+    d.victimPlayerId ??
+    d.againstPlayerId ??
+    null;
+
+  return { committed, drawn };
+}
+
+function penaltyLabelFromDetails(d) {
+  // descKey is usually best (e.g. hooking, tripping)
+  return titleize(d.descKey ?? d.typeCode ?? d.penaltyType ?? d.penaltyName ?? "Penalty");
+}
+
+function penaltyMinsFromDetails(d) {
+  return d.duration ?? d.penaltyMinutes ?? d.minutes ?? null;
+}
+
+// Build period -> [strings] with goals+penalties in play order
+function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, realMap }) {
+  const periods = new Map(); // key(number|string) -> { label, lines: [] }
+
+  const pushLine = (per, line) => {
+    const key = per ?? "Other";
+    if (!periods.has(key)) {
+      const label =
+        key === "OT" ? "Overtime" :
+        key === "SO" ? "Shootout" :
+        typeof key === "number" ? `Period ${key}` : `${key}`;
+      periods.set(key, { label, lines: [] });
+    }
+    periods.get(key).lines.push(line);
+  };
+
+  for (const pl of plays) {
+    const tkey = playTypeKey(pl);
+    const d = pl?.details ?? pl?.result ?? {};
+    const perNum = periodNumber(pl);
+
+    // Try to identify OT/SO if present
+    let perKey = perNum;
+    const periodType = (pl?.periodDescriptor?.periodType ?? pl?.about?.periodType ?? "").toString().toUpperCase();
+    if (periodType === "OT") perKey = "OT";
+    if (periodType === "SO") perKey = "SO";
+
+    const time = timeInPeriod(pl) || "—";
+    const abbr = teamAbbrFromPlay(pl, box, awayAbbr, homeAbbr);
+    const teamPrefix = abbr ? `**${abbr}** ` : "";
+    const score = scoreAfterPlay(pl, box);
+
+    // GOALS
+    if (tkey.includes("goal")) {
+      const { scorer, a1, a2 } = goalPlayersFromDetails(d);
+      const scorerName = fmtPlayerNameById(scorer, charMap, realMap);
+      const a1Name = a1 ? fmtPlayerNameById(a1, charMap, realMap) : "";
+      const a2Name = a2 ? fmtPlayerNameById(a2, charMap, realMap) : "";
+
+      const tag = strengthTag(d);
+      const tagTxt = tag ? ` (${tag})` : "";
+      const shot = shotTypeFromDetails(d);
+      const shotTxt = shot ? ` — ${shot}` : "";
+
+      const assists = [a1Name, a2Name].filter((x) => x && x !== "—");
+      const assistsTxt = assists.length ? `\n↳ Assists: ${assists.join(", ")}` : "";
+
+      const scoreTxt = score ? `  •  Score: ${score}` : "";
+
+      const line =
+        `🥅 **${time}** ${teamPrefix}${scorerName}${tagTxt}${shotTxt}${scoreTxt}` +
+        `${assistsTxt}`;
+
+      pushLine(perKey, line);
       continue;
     }
 
-    const sv = gg.savePctg != null ? `${Math.round(gg.savePctg * 1000) / 10}%` : "—";
-    const ga = gg.goalsAgainst != null ? gg.goalsAgainst : "—";
-    gLines.push(`• **G${i + 1}:** ${gName} — SV% ${sv} | GA ${ga}`);
+    // PENALTIES
+    if (tkey.includes("penalty")) {
+      const { committed, drawn } = penaltyPlayersFromDetails(d);
+      const commName = fmtPlayerNameById(committed, charMap, realMap);
+
+      const label = penaltyLabelFromDetails(d);
+      const mins = penaltyMinsFromDetails(d);
+      const minsTxt = mins != null ? ` (${mins})` : "";
+
+      const drawnName = drawn ? fmtPlayerNameById(drawn, charMap, realMap) : "";
+      const drawnTxt = drawnName && drawnName !== "—" ? `\n↳ Drawn by: ${drawnName}` : "";
+
+      const line =
+        `🟨 **${time}** ${teamPrefix}${commName}: **${label}**${minsTxt}` +
+        `${drawnTxt}`;
+
+      pushLine(perKey, line);
+      continue;
+    }
   }
 
-  if (!charTeam) gLines.push(`\n_No character roster for ${abbr}; showing real players._`);
+  // return in order: 1,2,3,OT,SO,Other
+  const orderedKeys = [];
+  for (const k of periods.keys()) orderedKeys.push(k);
 
-  fields.push({ name: "Goalies", value: gLines.join("\n") || "—", inline: false });
+  orderedKeys.sort((a, b) => {
+    const rank = (x) => {
+      if (x === 1) return 1;
+      if (x === 2) return 2;
+      if (x === 3) return 3;
+      if (x === 4) return 4;
+      if (x === "OT") return 90;
+      if (x === "SO") return 95;
+      if (typeof x === "number") return 80 + x;
+      return 999;
+    };
+    return rank(a) - rank(b);
+  });
 
-  return { title: `${teamName}`, fields };
+  return orderedKeys.map((k) => ({ key: k, ...periods.get(k) }));
 }
 
+function chunkEmbedsForDiscord(embeds) {
+  // Discord allows up to 10 embeds per message
+  const chunks = [];
+  for (let i = 0; i < embeds.length; i += 10) chunks.push(embeds.slice(i, i + 10));
+  return chunks;
+}
+
+function chunkDescriptionLines(lines, maxLen = 3800) {
+  // Keep safe under 4096; reserve a little.
+  const out = [];
+  let cur = [];
+
+  let curLen = 0;
+  for (const ln of lines) {
+    const addLen = ln.length + 2; // newline spacing
+    if (curLen + addLen > maxLen && cur.length) {
+      out.push(cur);
+      cur = [];
+      curLen = 0;
+    }
+    cur.push(ln);
+    curLen += addLen;
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
+
+// -------------------- embeds --------------------
 function headerEmbed({ gameId, box }) {
   const away = box.awayTeam.commonName.default;
   const home = box.homeTeam.commonName.default;
   const score = `${box.awayTeam.score}–${box.homeTeam.score}`;
-
   return {
     title: `🏒 ${away} @ ${home}`,
     description: `**Final:** ${score}\n**Game:** ${gameId}\n**Date (UTC):** ${DATE}`,
   };
 }
 
+function periodEmbeds({ periodLabel, lines }) {
+  if (!lines || !lines.length) {
+    return [{
+      title: `${periodLabel}`,
+      description: "_No goals or penalties recorded._",
+    }];
+  }
+
+  const chunks = chunkDescriptionLines(lines, 3800);
+  return chunks.map((group, idx) => ({
+    title: idx === 0 ? `${periodLabel}` : `${periodLabel} (cont.)`,
+    description: group.join("\n\n"), // extra spacing for readability
+  }));
+}
+
+// -------------------- game filtering --------------------
 function isFinalGame(g) {
   const s = (g.gameState || g.gameStatus || "").toString().toUpperCase();
   const id = g.gameStateId ?? g.gameStatusId ?? null;
@@ -388,6 +566,7 @@ function isFinalGame(g) {
   return false;
 }
 
+// -------------------- main --------------------
 async function main() {
   const rosters = await readJson(ROSTERS_PATH, {});
   const posted = await readJson(POSTED_PATH, { postedGameIds: [] });
@@ -396,9 +575,7 @@ async function main() {
   const games = score.games ?? [];
   const candidates = FORCE_ALL ? games : games.filter(isFinalGame);
 
-  console.log(
-    `Date=${DATE} games=${games.length} candidates=${candidates.length} FORCE_ALL=${FORCE_ALL} IGNORE_POSTED=${IGNORE_POSTED}`
-  );
+  console.log(`Date=${DATE} games=${games.length} candidates=${candidates.length} FORCE_ALL=${FORCE_ALL} IGNORE_POSTED=${IGNORE_POSTED}`);
 
   if (candidates.length === 0) {
     await postWebhook({
@@ -418,21 +595,21 @@ async function main() {
 
     const box = await nhlBoxscore(gameId);
     const pbp = await nhlPlayByPlay(gameId);
-    const penaltyMap = buildPenaltyMap(pbp);
-
-    const boxSkaters = extractSkatersFromBoxscore(box);
-
-    // log counts
-    for (const [abbr, grp] of Object.entries(boxSkaters)) {
-      console.log(`${gameId} ${abbr}: F=${grp.forwards.length} D=${grp.defense.length} G=${grp.goalies.length}`);
-    }
-
-    const realLines = buildRealLinesTOIFallback(boxSkaters);
 
     const awayAbbr = box.awayTeam.abbrev;
     const homeAbbr = box.homeTeam.abbrev;
 
-    // 1) Create forum thread with starter embed (header)
+    // Build maps so PBP player IDs can display as character names
+    const boxSkaters = extractSkatersFromBoxscore(box);
+    const realLines = buildRealLinesTOIFallback(boxSkaters);
+    const realMap = buildRealNameMap(boxSkaters);
+    const charMap = buildCharMapForGame({ rosters, realLines, awayAbbr, homeAbbr });
+
+    // Build play-by-play grouped by period
+    const plays = extractPlays(pbp);
+    const byPeriod = buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, realMap });
+
+    // 1) Create forum thread with header embed
     const threadName = `${DATE} • ${box.awayTeam.commonName.default} @ ${box.homeTeam.commonName.default} • ${gameId}`;
     const created = await postWebhook({
       username: "HOCKEYHOOK",
@@ -440,33 +617,38 @@ async function main() {
       embeds: [headerEmbed({ gameId, box })],
     });
 
+    // Forum webhook response: channel_id is usually the created thread/channel
     const threadId = created?.channel_id || created?.id;
-    console.log("Created thread:", { threadId });
+    console.log("Created thread:", { threadId, gameId });
 
-    // 2) Post team embeds inside the thread
-    const awayTeamName = boxSkaters[awayAbbr]?.teamName ?? awayAbbr;
-    const homeTeamName = boxSkaters[homeAbbr]?.teamName ?? homeAbbr;
+    // 2) Build all period embeds, then post in batches of 10
+    const allEmbeds = [];
+    for (const per of byPeriod) {
+      const embeds = periodEmbeds({ periodLabel: per.label, lines: per.lines });
+      allEmbeds.push(...embeds);
+    }
 
-    await postWebhook({
-      username: "HOCKEYHOOK",
-      threadId,
-      embeds: [teamEmbed({ teamName: awayTeamName, abbr: awayAbbr, rosters, rl: realLines[awayAbbr], penaltyMap })],
-    });
+    // If absolutely nothing was captured (rare), post a single embed
+    if (!allEmbeds.length) {
+      allEmbeds.push({ title: "Play By Play", description: "_No goals or penalties found in feed._" });
+    }
 
-    await sleep(300);
-
-    await postWebhook({
-      username: "HOCKEYHOOK",
-      threadId,
-      embeds: [teamEmbed({ teamName: homeTeamName, abbr: homeAbbr, rosters, rl: realLines[homeAbbr], penaltyMap })],
-    });
+    const embedBatches = chunkEmbedsForDiscord(allEmbeds);
+    for (const batch of embedBatches) {
+      await postWebhook({
+        username: "HOCKEYHOOK",
+        threadId,
+        embeds: batch,
+      });
+      await sleep(300);
+    }
 
     if (!IGNORE_POSTED) {
       posted.postedGameIds.push(gameId);
       await writeJson(POSTED_PATH, posted);
     }
 
-    await sleep(450);
+    await sleep(600); // pause between games
   }
 
   console.log("Done.");
