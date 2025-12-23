@@ -148,6 +148,23 @@ function statLine(p) {
   return `${g}G ${a}A ${pts}P | ${s} S | ${h} H | ${pim} PIM | TOI ${toi}`;
 }
 
+function realName(p) {
+  if (!p) return "";
+  // Most common in NHL boxscore
+  if (p.name && typeof p.name === "object") {
+    if (p.name.default) return p.name.default;
+    // sometimes localized keys exist
+    const any = Object.values(p.name).find((v) => typeof v === "string" && v.trim());
+    if (any) return any;
+  }
+  // fallback patterns seen in some NHL payloads
+  const first = p.firstName?.default || p.firstName || "";
+  const last = p.lastName?.default || p.lastName || "";
+  const full = `${first} ${last}`.trim();
+  return full || "";
+}
+
+
 function renderMirroredGame({ gameId, box, rosters, realLines, boxSkaters }) {
   const awayAbbr = box.awayTeam.abbrev;
   const homeAbbr = box.homeTeam.abbrev;
@@ -176,9 +193,9 @@ function renderMirroredGame({ gameId, box, rosters, realLines, boxSkaters }) {
       const c = trio[1];
       const rw = trio[2];
 
-      const lwReal = lw ? lw.name.default : "";
-      const cReal = c ? c.name.default : "";
-      const rwReal = rw ? rw.name.default : "";
+      const lwReal = realName(lw);
+      const cReal = realName(c);
+      const rwReal = realName(rw);
 
       blocks.push(
         `L${i + 1}: ${charOrReal(ch.LW, lwReal)} ⇐ ${lwReal || "—"}${lw ? ` (${statLine(lw)})` : ""}\n` +
@@ -196,8 +213,8 @@ function renderMirroredGame({ gameId, box, rosters, realLines, boxSkaters }) {
       const d1 = pair[0];
       const d2 = pair[1];
 
-      const d1Real = d1 ? d1.name.default : "";
-      const d2Real = d2 ? d2.name.default : "";
+      const d1Real = realName(d1);
+      const d2Real = realName(d2);
 
       blocks.push(
         `D${i + 1}: ${charOrReal(ch.LD, d1Real)} ⇐ ${d1Real || "—"}${d1 ? ` (${statLine(d1)})` : ""}\n` +
@@ -211,7 +228,7 @@ function renderMirroredGame({ gameId, box, rosters, realLines, boxSkaters }) {
       const gg = rl?.G?.[i] ?? null;
       const ch = charTeam?.G?.[i] ?? { G: "" };
 
-      const gReal = gg ? gg.name.default : "";
+      const gReal = realName(lw);
 
       if (!gg) {
         blocks.push(`G${i + 1}: ${charOrReal(ch.G, gReal)} ⇐ —`);
