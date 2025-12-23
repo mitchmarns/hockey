@@ -1,0 +1,33 @@
+name: Post NHL games (character mirror)
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "YYYY-MM-DD (leave blank for today UTC)"
+        required: false
+        default: ""
+  schedule:
+    # Runs every day at 06:15 UTC (~10:15pm PT). Adjust if you want.
+    - cron: "15 6 * * *"
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check webhook env (safe)
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: node -e "console.log('Webhook set?', !!process.env.DISCORD_WEBHOOK_URL)"
+
+      - name: Run post-games
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DATE: ${{ inputs.date }}
+        run: node post-games.js
