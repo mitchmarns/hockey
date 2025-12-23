@@ -631,7 +631,7 @@ function headerEmbed({ gameId, box }) {
   const score = `${box.awayTeam.score}–${box.homeTeam.score}`;
   return {
     title: `🏒 ${away} @ ${home}`,
-    description: `**Final:** ${score}\n**Game:** ${gameId}\n**Date (UTC):** ${DATE}`,
+    description: `**Final:** ${score}\n**Date:** ${DATE}`,
   };
 }
 
