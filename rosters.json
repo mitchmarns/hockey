@@ -1,0 +1,53 @@
+{
+  "LOS ANGELES KINGS": {
+    "F": [
+      { "LW": "Sebastian Cormier", "C": "Bennett Pierce", "RW": "Declan Thorne" },
+      { "LW": "Cooper Levan", "C": "Link Beauvais", "RW": "Evander Calloway" },
+      { "LW": "Damien Lawson", "C": "Kit Beauvais", "RW": "Nikolai Sokolov" },
+      { "LW": "", "C": "Asher Moore", "RW": "Henrik Pierce" }
+    ],
+    "D": [
+      { "LD": "Callum Wilde", "RD": "" },
+      { "LD": "Tag Getty", "RD": "Liam Nilsson" },
+      { "LD": "", "RD": "Harlowe Bauer" }
+    ],
+    "G": [
+      { "G": "Jasper Reynolds" },
+      { "G": "" }
+    ]
+  },
+  "SAN JOSE SHARKS": {
+    "F": [
+      { "LW": "Hendrix Brooks", "C": "Mathis Christen", "RW": "Preston Thorne" },
+      { "LW": "Julian Levan", "C": "Dylan Brooks", "RW": "Logan Edwards" },
+      { "LW": "Taylor Abbott", "C": "Kai Morin", "RW": "Axel Gustav" },
+      { "LW": "", "C": "", "RW": "" }
+    ],
+    "D": [
+      { "LD": "Orion Brooks", "RD": "" },
+      { "LD": "Fig Maxwell", "RD": "" },
+      { "LD": "", "RD": "" }
+    ],
+    "G": [
+      { "G": "Mikey Roy" },
+      { "G": "" }
+    ]
+  },
+  "ANAHEIM DUCKS": {
+    "F": [
+      { "LW": "Arbor Beauvais", "C": "Bo Moore", "RW": "Mika Laine" },
+      { "LW": "Wren Howards", "C": "Matthias Koskinen", "RW": "Dakota Guidry" },
+      { "LW": "Ty McIntyre", "C": "", "RW": "" },
+      { "LW": "Cole Beauvais", "C": "Zeke Wallace", "RW": "" }
+    ],
+    "D": [
+      { "LD": "Jace Keller", "RD": "Tate Brooks" },
+      { "LD": "Maxwell Harper", "RD": "Rowan Carson" },
+      { "LD": "Atlas McIntyre", "RD": "Danny Thorne" }
+    ],
+    "G": [
+      { "G": "Trent Cormier" },
+      { "G": "Fitzy" }
+    ]
+  }
+}
