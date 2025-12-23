@@ -1,0 +1,35 @@
+name: Post roster to Discord
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "matchup or single"
+        required: false
+        default: "matchup"
+      home_team:
+        description: "Exact team name from rosters.json (HOME team)"
+        required: false
+        default: "LOS ANGELES KINGS"
+      away_team:
+        description: "Exact team name from rosters.json (AWAY team)"
+        required: false
+        default: "SAN JOSE SHARKS"
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Post to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          MODE: ${{ inputs.mode }}
+          HOME_TEAM: ${{ inputs.home_team }}
+          AWAY_TEAM: ${{ inputs.away_team }}
+        run: node post-roster.js
