@@ -507,7 +507,7 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
 
       pushLine(
         perKey,
-        `🟨 **${time}** ${teamPrefix}${commName}: **${label}**${minsTxt}${drawnTxt}`
+        `**${time}** ${teamPrefix}${commName}: **${label}**${minsTxt}${drawnTxt}`
       );
       continue;
     }
