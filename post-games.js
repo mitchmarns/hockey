@@ -209,22 +209,27 @@ function teamEmbed({ teamName, abbr, rosters, rl }) {
 
   // --- Forwards: L1-L4 (two-column)
   for (let i = 0; i < 4; i++) {
-    const trio = rl?.F?.[i] ?? [null, null, null];
-    const ch = charTeam?.F?.[i] ?? { LW: "", C: "", RW: "" };
+  const trio = rl?.F?.[i] ?? [null, null, null];
+  const ch = charTeam?.F?.[i] ?? { LW: "", C: "", RW: "" };
 
-    const lw = trio[0], c = trio[1], rw = trio[2];
+  const lw = trio[0], c = trio[1], rw = trio[2];
 
-    const lwName = charOrReal(ch.LW, realName(lw));
-    const cName  = charOrReal(ch.C,  realName(c));
-    const rwName = charOrReal(ch.RW, realName(rw));
+  const lwName = charOrReal(ch.LW, realName(lw));
+  const cName  = charOrReal(ch.C,  realName(c));
+  const rwName = charOrReal(ch.RW, realName(rw));
 
-    const val =
-      `• **LW:** ${lwName}${lw ? ` — ${statLine(lw)}` : ""}\n` +
-      `• **C:** ${cName}${c ? ` — ${statLine(c)}` : ""}\n` +
-      `• **RW:** ${rwName}${rw ? ` — ${statLine(rw)}` : ""}`;
+  const val =
+    `• **LW:** ${lwName}${lw ? ` — ${statLine(lw)}` : ""}\n` +
+    `• **C:** ${cName}${c ? ` — ${statLine(c)}` : ""}\n` +
+    `• **RW:** ${rwName}${rw ? ` — ${statLine(rw)}` : ""}`;
 
-    fields.push({ name: `L${i + 1}`, value: val || "—", inline: true });
+  fields.push({ name: `L${i + 1}`, value: val || "—", inline: true });
+
+  // ✅ row break after L2 and after L4 (optional after L4)
+  if (i === 1 || i === 3) {
+    fields.push({ name: "\u200B", value: "\u200B", inline: false });
   }
+}
 
   // spacer so Defense starts on a new row (Discord trick)
   fields.push({ name: "\u200B", value: "\u200B", inline: false });
@@ -244,6 +249,7 @@ function teamEmbed({ teamName, abbr, rosters, rl }) {
       `• **RD:** ${d2Name}${d2 ? ` — ${statLine(d2)}` : ""}`;
 
     fields.push({ name: `D${i + 1}`, value: val || "—", inline: true });
+if (i === 1) fields.push({ name: "\u200B", value: "\u200B", inline: false });
   }
 
   fields.push({ name: "\u200B", value: "\u200B", inline: false });
