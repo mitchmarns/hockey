@@ -45,4 +45,17 @@ function renderTeam(teamName, team) {
 }
 
 async function postWebhook(payload) {
-  if (!WEBHOOK_URL) throw new Error("Missing DISCORD_WEBHOOK_URL (GitHub secret_
+  if (!WEBHOOK_URL) {
+    throw new Error("Missing DISCORD_WEBHOOK_URL (GitHub secret).");
+  }
+
+  const res = await fetch(WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Discord webhook failed: ${res.status} ${await res.text()}`);
+  }
+}
