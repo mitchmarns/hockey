@@ -67,6 +67,10 @@ async function nhlBoxscore(gameId) {
  * - threadName => creates a new thread (Forum channel only)
  * - threadId   => posts inside an existing thread
  */
+async function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 async function postWebhook({ content, username = "HOCKEYHOOK", threadId = "", threadName = "" }) {
   must(WEBHOOK_URL, "Missing DISCORD_WEBHOOK_URL");
 
@@ -77,16 +81,42 @@ async function postWebhook({ content, username = "HOCKEYHOOK", threadId = "", th
   const body = { content, username };
   if (threadName) body.thread_name = threadName;
 
-  const res = await fetch(url.toString(), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  // Retry loop for rate limits
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const res = await fetch(url.toString(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
 
-  if (!res.ok) throw new Error(`Discord webhook failed: ${res.status} ${await res.text()}`);
-  return res.json();
+    if (res.ok) return res.json();
+
+    // Handle Discord rate limit (429)
+    if (res.status === 429) {
+      let retryMs = 1000; // fallback
+      try {
+        const data = await res.json();
+        const retryAfter = Number(data.retry_after);
+        // Discord's retry_after is seconds (often fractional)
+        if (!Number.isNaN(retryAfter) && retryAfter > 0) {
+          retryMs = Math.ceil(retryAfter * 1000);
+        }
+        console.warn(`Rate limited. Waiting ${retryMs}ms then retrying...`);
+      } catch {
+        console.warn(`Rate limited. Waiting ${retryMs}ms then retrying...`);
+      }
+
+      // small cushion so we don't re-hit immediately
+      await sleep(retryMs + 150);
+      continue;
+    }
+
+    // Other error: include body for debugging
+    throw new Error(`Discord webhook failed: ${res.status} ${await res.text()}`);
+  }
+
+  throw new Error("Discord webhook failed: too many rate limit retries.");
 }
-
 function realName(p) {
   if (!p) return "";
   if (p.name && typeof p.name === "object") {
