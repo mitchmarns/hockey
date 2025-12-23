@@ -1,4 +1,5 @@
-// post-games.js 
+// post-games.js  — Forum threads + Embeds + Play-by-play (Goals + Penalties) + Character name replacement + 3 Stars
+// Node 20+; CommonJS
 
 const fs = require("node:fs/promises");
 const path = require("node:path");
@@ -63,6 +64,14 @@ async function nhlPlayByPlay(gameId) {
   const url = `https://api-web.nhle.com/v1/gamecenter/${gameId}/play-by-play`;
   const res = await fetch(url, { headers: { Accept: "application/json" } });
   if (!res.ok) throw new Error(`play-by-play failed: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+// ⭐ landing endpoint (3 stars usually live here)
+async function nhlLanding(gameId) {
+  const url = `https://api-web.nhle.com/v1/gamecenter/${gameId}/landing`;
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error(`landing failed: ${res.status} ${await res.text()}`);
   return res.json();
 }
 
@@ -263,9 +272,87 @@ function buildCharMapForGame({ rosters, realLines, awayAbbr, homeAbbr }) {
 function fmtPlayerNameById(playerId, charMap, realMap) {
   if (!playerId) return "—";
   const ch = charMap?.get(playerId);
-  if (ch?.name) return `**${ch.name}**`;
+  if (ch?.name) return `**${ch.name}**`; // bold character names
   const rn = realMap?.get(playerId);
   return rn || "—";
+}
+
+// -------------------- 3 Stars helpers --------------------
+function extractThreeStars(landing) {
+  const candidates = [
+    landing?.threeStars,
+    landing?.gameInfo?.threeStars,
+    landing?.summary?.threeStars,
+    landing?.gameSummary?.threeStars,
+    landing?.gamecenter?.threeStars,
+  ];
+
+  for (const c of candidates) {
+    if (!c) continue;
+
+    if (Array.isArray(c) && c.length) return c;
+
+    if (typeof c === "object") {
+      const arr =
+        c.stars ||
+        c.star ||
+        c.threeStars ||
+        Object.values(c).filter((x) => x && typeof x === "object");
+      if (Array.isArray(arr) && arr.length) return arr;
+    }
+  }
+
+  return [];
+}
+
+function starPlayerId(starObj) {
+  return starObj?.playerId ?? starObj?.id ?? starObj?.player?.id ?? starObj?.player?.playerId ?? null;
+}
+
+function starPlayerName(starObj) {
+  return (
+    starObj?.name?.default ??
+    starObj?.fullName ??
+    starObj?.playerName ??
+    starObj?.player?.name?.default ??
+    starObj?.player?.fullName ??
+    ""
+  );
+}
+
+function starTeamAbbr(starObj) {
+  return (
+    starObj?.teamAbbrev ??
+    starObj?.teamAbbr ??
+    starObj?.team?.abbrev ??
+    starObj?.team?.triCode ??
+    ""
+  );
+}
+
+function starsEmbed({ stars, charMap, realMap }) {
+  if (!stars || !stars.length) return null;
+
+  const lines = [];
+  for (let i = 0; i < Math.min(3, stars.length); i++) {
+    const s = stars[i];
+    const pid = starPlayerId(s);
+
+    // prefer ID-based mapping (lets us replace with character names)
+    let display = pid ? fmtPlayerNameById(pid, charMap, realMap) : "";
+    if (!display || display === "—") {
+      const nm = starPlayerName(s);
+      display = nm ? nm : "—";
+    }
+
+    const team = starTeamAbbr(s);
+    lines.push(`⭐ **${i + 1}:** ${display}${team ? ` (${team})` : ""}`);
+  }
+
+  return {
+    title: "⭐ Three Stars",
+    description: lines.join("\n"),
+  };
 }
 
 // -------------------- Play-by-play parsing --------------------
@@ -293,7 +380,6 @@ function periodNumber(pl) {
 }
 
 function timeInPeriod(pl) {
-  // Prefer timeInPeriod; fallback to periodTime
   return (pl?.timeInPeriod ?? pl?.about?.periodTime ?? "").toString();
 }
 
@@ -303,15 +389,12 @@ function strengthTag(details) {
     .toLowerCase()
     .trim();
 
-  // Common-ish codes (varies): "pp", "sh", "ev", "ps", "5v4", "4v5", "5v5"
   if (!raw) return "";
 
   if (raw === "pp" || raw.includes("power")) return "PP";
   if (raw === "sh" || raw.includes("short")) return "SH";
   if (raw === "ev" || raw.includes("even")) return "EV";
   if (raw === "ps" || raw.includes("penaltyshot")) return "PS";
-
-  // If it's like "5v4"
   if (/^\d+v\d+$/.test(raw)) return raw.toUpperCase();
 
   return raw.toUpperCase();
@@ -328,26 +411,11 @@ function teamAbbrFromPlay(pl, box, awayAbbr, homeAbbr) {
 
   if (ab) return ab.toString().toUpperCase().trim();
 
-  // Sometimes there's a team id
   const tid = d.eventOwnerTeamId ?? d.teamId ?? d.ownerTeamId ?? d.scoringTeamId ?? null;
   const awayId = box?.awayTeam?.id ?? null;
   const homeId = box?.homeTeam?.id ?? null;
   if (tid && awayId && tid === awayId) return awayAbbr;
   if (tid && homeId && tid === homeId) return homeAbbr;
-
-  return "";
-}
-
-function scoreAfterPlay(pl, box) {
-  const d = pl?.details ?? pl?.result ?? {};
-  const a = d.awayScore ?? d.goalsAway ?? pl?.awayScore ?? null;
-  const h = d.homeScore ?? d.goalsHome ?? pl?.homeScore ?? null;
-  if (a != null && h != null) return `${a}–${h}`;
-
-  // last fallback: box final
-  const fa = box?.awayTeam?.score;
-  const fh = box?.homeTeam?.score;
-  if (fa != null && fh != null) return `${fa}–${fh}`;
 
   return "";
 }
@@ -386,7 +454,7 @@ function penaltyPlayersFromDetails(d) {
     d.committedByPlayerId ??
     d.penaltyPlayerId ??
     d.playerId ??
-    d.servedByPlayerId ?? // sometimes (bench minor)
+    d.servedByPlayerId ??
     null;
 
   const drawn =
@@ -400,7 +468,6 @@ function penaltyPlayersFromDetails(d) {
 }
 
 function penaltyLabelFromDetails(d) {
-  // descKey is usually best (e.g. hooking, tripping)
   return titleize(d.descKey ?? d.typeCode ?? d.penaltyType ?? d.penaltyName ?? "Penalty");
 }
 
@@ -424,7 +491,7 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
     periods.get(key).lines.push(line);
   };
 
-  // Track score ourselves so it doesn't spam final score everywhere
+  // Track score ourselves (so we can show Score after goals)
   let curAway = 0;
   let curHome = 0;
 
@@ -446,7 +513,7 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
     const abbr = teamAbbrFromPlay(pl, box, awayAbbr, homeAbbr);
     const teamPrefix = abbr ? `**${abbr}** ` : "";
 
-    // ✅ ONLY real GOALS (avoid shot-on-goal)
+    // ✅ ONLY real GOALS (avoid shot events)
     const isGoal =
       key === "goal" ||
       (key.includes("goal") && !key.includes("shot") && !key.includes("shot-on-goal") && !key.includes("shotongoal"));
@@ -467,6 +534,8 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
       const { scorer, a1, a2 } = goalPlayersFromDetails(d);
 
       const scorerName = fmtPlayerNameById(scorer, charMap, realMap);
+      if (scorerName === "—") continue;
+
       const a1Name = a1 ? fmtPlayerNameById(a1, charMap, realMap) : "";
       const a2Name = a2 ? fmtPlayerNameById(a2, charMap, realMap) : "";
 
@@ -481,9 +550,6 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
       const assists = [a1Name, a2Name].filter((x) => x && x !== "—");
       const assistsTxt = assists.length ? `\n↳ Assists: ${assists.join(", ")}` : "";
 
-      // If somehow scorer is missing, don't post junk
-      if (scorerName === "—") continue;
-
       pushLine(
         perKey,
         `🥅 **${time}** ${teamPrefix}${scorerName}${tagTxt}${shotTxt}${scoreTxt}${assistsTxt}`
@@ -495,6 +561,9 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
       const { committed, drawn } = penaltyPlayersFromDetails(d);
       const commName = fmtPlayerNameById(committed, charMap, realMap);
 
+      // skip generic spam
+      if (commName === "—") continue;
+
       const label = penaltyLabelFromDetails(d);
       const mins = penaltyMinsFromDetails(d);
       const minsTxt = mins != null ? ` (${mins})` : "";
@@ -502,12 +571,9 @@ function buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, real
       const drawnName = drawn ? fmtPlayerNameById(drawn, charMap, realMap) : "";
       const drawnTxt = drawnName && drawnName !== "—" ? `\n↳ Drawn by: ${drawnName}` : "";
 
-      // If no player attached, skip the generic "—: Penalty" spam
-      if (commName === "—") continue;
-
       pushLine(
         perKey,
-        `**${time}** ${teamPrefix}${commName}: **${label}**${minsTxt}${drawnTxt}`
+        `🟨 **${time}** ${teamPrefix}${commName}: **${label}**${minsTxt}${drawnTxt}`
       );
       continue;
     }
@@ -541,8 +607,8 @@ function chunkDescriptionLines(lines, maxLen = 3800) {
   // Keep safe under 4096; reserve a little.
   const out = [];
   let cur = [];
-
   let curLen = 0;
+
   for (const ln of lines) {
     const addLen = ln.length + 2; // newline spacing
     if (curLen + addLen > maxLen && cur.length) {
@@ -570,16 +636,18 @@ function headerEmbed({ gameId, box }) {
 
 function periodEmbeds({ periodLabel, lines }) {
   if (!lines || !lines.length) {
-    return [{
-      title: `${periodLabel}`,
-      description: "_No goals or penalties recorded._",
-    }];
+    return [
+      {
+        title: `${periodLabel}`,
+        description: "_No goals or penalties recorded._",
+      },
+    ];
   }
 
   const chunks = chunkDescriptionLines(lines, 3800);
   return chunks.map((group, idx) => ({
     title: idx === 0 ? `${periodLabel}` : `${periodLabel} (cont.)`,
-    description: group.join("\n\n"), // extra spacing for readability
+    description: group.join("\n\n"),
   }));
 }
 
@@ -601,7 +669,9 @@ async function main() {
   const games = score.games ?? [];
   const candidates = FORCE_ALL ? games : games.filter(isFinalGame);
 
-  console.log(`Date=${DATE} games=${games.length} candidates=${candidates.length} FORCE_ALL=${FORCE_ALL} IGNORE_POSTED=${IGNORE_POSTED}`);
+  console.log(
+    `Date=${DATE} games=${games.length} candidates=${candidates.length} FORCE_ALL=${FORCE_ALL} IGNORE_POSTED=${IGNORE_POSTED}`
+  );
 
   if (candidates.length === 0) {
     await postWebhook({
@@ -622,6 +692,14 @@ async function main() {
     const box = await nhlBoxscore(gameId);
     const pbp = await nhlPlayByPlay(gameId);
 
+    // try stars (don’t fail the whole game if landing errors)
+    let landing = null;
+    try {
+      landing = await nhlLanding(gameId);
+    } catch (e) {
+      console.warn(`landing failed for ${gameId}:`, e.message);
+    }
+
     const awayAbbr = box.awayTeam.abbrev;
     const homeAbbr = box.homeTeam.abbrev;
 
@@ -634,6 +712,10 @@ async function main() {
     // Build play-by-play grouped by period
     const plays = extractPlays(pbp);
     const byPeriod = buildPlayByPlayByPeriod({ plays, box, awayAbbr, homeAbbr, charMap, realMap });
+
+    // Prepare stars embed (if available)
+    const stars = landing ? extractThreeStars(landing) : [];
+    const starsE = starsEmbed({ stars, charMap, realMap });
 
     // 1) Create forum thread with header embed
     const threadName = `${DATE} • ${box.awayTeam.commonName.default} @ ${box.homeTeam.commonName.default} • ${gameId}`;
@@ -654,7 +736,6 @@ async function main() {
       allEmbeds.push(...embeds);
     }
 
-    // If absolutely nothing was captured (rare), post a single embed
     if (!allEmbeds.length) {
       allEmbeds.push({ title: "Play By Play", description: "_No goals or penalties found in feed._" });
     }
@@ -669,12 +750,22 @@ async function main() {
       await sleep(300);
     }
 
+    // 3) Post 3 Stars at the end (if present)
+    if (starsE) {
+      await sleep(350);
+      await postWebhook({
+        username: "HOCKEYHOOK",
+        threadId,
+        embeds: [starsE],
+      });
+    }
+
     if (!IGNORE_POSTED) {
       posted.postedGameIds.push(gameId);
       await writeJson(POSTED_PATH, posted);
     }
 
-    await sleep(600); // pause between games
+    await sleep(650); // pause between games
   }
 
   console.log("Done.");
