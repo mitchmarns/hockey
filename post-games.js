@@ -23,6 +23,21 @@ function charOrReal(charName, realName) {
   return r ? r : "—";
 }
 
+function pickName(charName, realName) {
+  const c = (charName ?? "").toString().trim();
+  if (c) return { name: c, isChar: true };
+
+  const r = (realName ?? "").toString().trim();
+  if (r) return { name: r, isChar: false };
+
+  return { name: "—", isChar: false };
+}
+
+function fmtName(picked) {
+  // bold ONLY character names
+  return picked.isChar ? `**${picked.name}**` : picked.name;
+}
+
 function toiToSeconds(toi) {
   const s = (toi ?? "").toString().trim();
   const m = s.match(/^(\d+):(\d{2})$/);
@@ -214,14 +229,14 @@ function teamEmbed({ teamName, abbr, rosters, rl }) {
 
   const lw = trio[0], c = trio[1], rw = trio[2];
 
-  const lwName = charOrReal(ch.LW, realName(lw));
-  const cName  = charOrReal(ch.C,  realName(c));
-  const rwName = charOrReal(ch.RW, realName(rw));
-
+  const lwPick = pickName(ch.LW, realName(lw));
+  const cPick  = pickName(ch.C,  realName(c));
+  const rwPick = pickName(ch.RW, realName(rw));
+  
   const val =
-    `• **LW:** ${lwName}${lw ? ` — ${statLine(lw)}` : ""}\n` +
-    `• **C:** ${cName}${c ? ` — ${statLine(c)}` : ""}\n` +
-    `• **RW:** ${rwName}${rw ? ` — ${statLine(rw)}` : ""}`;
+    `• **LW:** ${fmtName(lwPick)}${lw ? ` — ${statLine(lw)}` : ""}\n` +
+    `• **C:** ${fmtName(cPick)}${c ? ` — ${statLine(c)}` : ""}\n` +
+    `• **RW:** ${fmtName(rwPick)}${rw ? ` — ${statLine(rw)}` : ""}`;
 
   fields.push({ name: `L${i + 1}`, value: val || "—", inline: true });
 
@@ -241,12 +256,12 @@ function teamEmbed({ teamName, abbr, rosters, rl }) {
 
     const d1 = pair[0], d2 = pair[1];
 
-    const d1Name = charOrReal(ch.LD, realName(d1));
-    const d2Name = charOrReal(ch.RD, realName(d2));
-
+    const d1Pick = pickName(ch.LD, realName(d1));
+    const d2Pick = pickName(ch.RD, realName(d2));
+    
     const val =
-      `• **LD:** ${d1Name}${d1 ? ` — ${statLine(d1)}` : ""}\n` +
-      `• **RD:** ${d2Name}${d2 ? ` — ${statLine(d2)}` : ""}`;
+      `• **LD:** ${fmtName(d1Pick)}${d1 ? ` — ${statLine(d1)}` : ""}\n` +
+      `• **RD:** ${fmtName(d2Pick)}${d2 ? ` — ${statLine(d2)}` : ""}`;
 
     fields.push({ name: `D${i + 1}`, value: val || "—", inline: true });
 if (i === 1) fields.push({ name: "\u200B", value: "\u200B", inline: false });
@@ -259,7 +274,8 @@ if (i === 1) fields.push({ name: "\u200B", value: "\u200B", inline: false });
   for (let i = 0; i < 2; i++) {
     const gg = rl?.G?.[i] ?? null;
     const ch = charTeam?.G?.[i] ?? { G: "" };
-    const gName = charOrReal(ch.G, realName(gg));
+    const gPick = pickName(ch.G, realName(gg));
+    const gName = fmtName(gPick);
 
     if (!gg) {
       gLines.push(`• **G${i + 1}:** ${gName}`);
