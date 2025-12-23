@@ -49,13 +49,17 @@ async function postWebhook(payload) {
     throw new Error("Missing DISCORD_WEBHOOK_URL (GitHub secret).");
   }
 
-  const res = await fetch(WEBHOOK_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+const hookUrl = WEBHOOK_URL.includes("?")
+  ? `${WEBHOOK_URL}&wait=true`
+  : `${WEBHOOK_URL}?wait=true`;
 
-  if (!res.ok) {
-    throw new Error(`Discord webhook failed: ${res.status} ${await res.text()}`);
-  }
-}
+const res = await fetch(hookUrl, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(payload),
+});
+
+if (!res.ok) throw new Error(`Discord webhook failed: ${res.status} ${await res.text()}`);
+
+const data = await res.json();
+console.log("Posted:", { message_id: data.id, channel_id: data.channel_id });
